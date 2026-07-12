@@ -1,0 +1,40 @@
+apiVersion: runtimeconditions.io/v1alpha1
+kind: RuntimeConditionsPackage
+
+metadata:
+  package: github.com/runtimeconditions/spec/examples/sdks/aws-sdk-go-v2/service/s3
+  language: go
+
+extension:
+  id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+  definition: ../../../../extensions/aws-object-store/aws-object-store-v1alpha1.yaml
+
+go:
+  importPath: github.com/runtimeconditions/spec/examples/sdks/aws-sdk-go-v2/service/s3
+  package: s3
+
+  constructors:
+    - function: NewFromConfig
+      receiver: Client
+
+  declarations:
+    - receiver: Client
+      method: PutObject
+      name: s3-object-store
+      kind: aws.object_store
+      interfaceType: aws.s3
+      values:
+        - target: interface.bucketClass
+          value: standard
+      configuration:
+        env:
+          - property: bucket
+            name: AUDIT_LOG_BUCKET
+          - property: region
+            name: AWS_REGION
+          - property: accessKeyId
+            name: AWS_ACCESS_KEY_ID
+            sensitive: true
+          - property: secretAccessKey
+            name: AWS_SECRET_ACCESS_KEY
+            sensitive: true
