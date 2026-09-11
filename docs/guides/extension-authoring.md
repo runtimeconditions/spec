@@ -8,7 +8,90 @@ This guide documents the repository convention for writing Runtime Conditions ex
 
 ---
 
-# 1. Ownership
+# 1. Adapter-Actionable Minimum
+
+The adapter-actionable minimum is the highest-priority design constraint for extension authors. Begin with what a downstream Adapter must decide, then work backward to the smallest portable Condition vocabulary that supports that decision. Do not begin with everything an API model, SDK, library, framework, configuration file, or code analyzer can expose.
+
+An extension is not a Service Operations Inventory, SDK reference, API description, or source-analysis evidence file. It is a semantic contract between a workload requirement and consumers that can fulfill, validate, govern, or report on that requirement. Every additional distinction increases profile size, authoring burden, validation complexity, versioning pressure, and the amount of meaning adopters must understand.
+
+## 1.1 Inclusion Test
+
+Before adding a kind, interface type, field, field value, operation coordinate, or validation rule, answer these questions:
+
+1. Does the detail describe an external runtime requirement rather than internal application behavior?
+2. Can a credible Adapter use it to make a materially different provisioning, service-selection, authorization, network-policy, configuration, deployment, validation, or governance decision?
+3. Is the distinction portable across environments and independent of one SDK's naming or implementation?
+4. Is this the least detailed stable representation that supports the decision?
+5. Is there an authoritative semantic source or a clearly documented extension-owner decision for the distinction?
+
+If the answer to the first three questions is not yes, omit the detail from the extension. If a coarser representation supports the same Adapter outcome, prefer the coarser representation. Do not add vocabulary for possible future consumers without documenting the concrete decision that vocabulary is expected to enable.
+
+Static detectability is not an inclusion requirement. An extension may need to represent a valid requirement that a particular profiler or SDK mapping cannot infer. In that case, an application developer may use extension-provided declarative bindings or a project-local override. Conversely, easy detection does not justify adding a detail that is not adapter-actionable.
+
+## 1.2 Appropriate Granularity
+
+The appropriate minimum differs by integration:
+
+- A relational datastore may need `engine: postgres` because it changes the service or runtime selected by an Adapter. Individual SQL client methods usually do not belong in the extension unless they support a concrete, portable database-access policy that the extension intentionally owns.
+- An HTTP API may need only an endpoint requirement. Method and path are appropriate when an Adapter uses them to configure an API gateway, egress policy, mock, or allowlist. Request and response schemas should be included only when an Adapter actually consumes them for fulfillment or validation; their presence in OpenAPI is not sufficient justification.
+- An environment-configuration extension may identify that an application expects a URL, hostname, token, or other property through a source-proven environment variable. It should not invent a vendor's conventional variable names merely because an SDK supports them.
+- An S3 extension may distinguish `PutObject`, `GetObject`, and other canonical service operations because those distinctions can change authorization. A source/destination role may be justified for an operation such as `CopyObject` when the two resources require different permissions. SDK method signatures, paginator classes, retry behavior, and HTTP request structures remain outside the extension.
+- A Kubernetes extension may retain verb, API group, API version, plural resource, scope, and optional subresource because those coordinates directly affect RBAC and policy. Generated Python class names, watch-wrapper implementation, discovery cache behavior, and OpenAPI Generator identifiers do not belong in the extension.
+
+Operation-level vocabulary is therefore optional, not a maturity level that every extension must reach. Include operations only when different operations lead to different Adapter behavior. A service with hundreds of API operations may legitimately expose a handful of adapter-facing capabilities, while a permission-sensitive service may need canonical operation names. One detailed extension is not a template requiring equivalent depth elsewhere.
+
+## 1.3 SDK and Generated-Model Context
+
+An SDK mapping aligns SDK-owned public behavior to an existing extension release. It does not define the extension's semantic depth.
+
+SDK and service-model integrations commonly contain three different amounts of information:
+
+1. The authoritative service or protocol model may enumerate every operation and request shape.
+2. The SDK mapping may enumerate many language symbols, aliases, factories, wrappers, generated methods, and state transitions needed to recognize application usage.
+3. The extension should retain only the canonical distinctions that an Adapter needs, and the generated profile should contain only those Conditions proven for the application.
+
+These layers need not be similar in size. Hundreds of SDK methods may collapse into a few extension capabilities. A generated SDK mapping may be large while its extension and application profiles remain compact. Generated artifact size should be measured for packaging and performance, but it is not by itself evidence that the extension vocabulary is too deep.
+
+When an SDK investigation identifies a distinction absent from the extension, first ask whether that distinction changes a portable Adapter decision. If it does, revise and version the extension before mapping the SDK behavior. If it does not, keep the information as mapping-generation evidence or omit it from emitted Conditions. Never add extension vocabulary merely to make an SDK mapping lossless.
+
+An SDK mapping should describe only behavior proven by an authoritative service model or pinned SDK source, and a profiler consumer should emit only Conditions proven by application source. When required coordinates are dynamic or available only through runtime discovery, the generator should emit no inferred Condition rather than substitute a broader requirement. The extension may still support explicit declarative use of that vocabulary.
+
+### 1.3.1 Service Operation Sources and Semantic Bridges
+
+SDK authors need one language-neutral operation authority before they can map language symbols to extension Conditions. When a provider publishes an adequate machine-readable service model such as Smithy, OpenAPI, protobuf, or another protocol definition, generators should reference and project that source rather than ask maintainers to reproduce its operation inventory.
+
+When no adequate authoritative machine-readable operation source exists, service stakeholders should maintain one `service-operations-inventory.yaml`. The Service Operations Inventory records only a cohesive result set of stable service operations, service-owned inputs and requiredness, and service-domain value shapes. It is a language-neutral service artifact shared by all SDK languages and releases, not an SDK-specific overlay, and it must not contain Runtime Conditions semantics.
+
+The extension repository maintains one `service-operations-semantic-bridge.yaml` for the extension. The bridge references the authoritative Smithy, OpenAPI, protobuf, or other provider artifact when one exists and references an exact Service Operations Inventory only as the fallback. It contains the minimum reviewed decisions needed to translate source operations and inputs into adapter-actionable Condition semantics. This separation keeps service facts reusable outside Runtime Conditions and keeps the published extension free of an authoring paper trail.
+
+The operation source and semantic bridge compile into a deterministic extension and language-neutral service mapping with exact extension coordinates and semantic digests. SDK mappings reference that generated mapping and add only language-owned symbols, bindings, state, delegation, and release identity. The compiler can generate the operation-oriented portions of an extension when the bridge contains every adapter-facing semantic decision required for them; generation automates expansion and validation, not the human decision about what an operation proves.
+
+A source operation added without a new adapter distinction may update the bridge and service mapping while leaving the extension vocabulary unchanged. Any SDK release that exposes the operation still requires its generated SDK method mapping to be updated or regenerated so the public symbol points to the canonical service operation and existing Condition. If a new operation requires a new Condition distinction, the extension must be revised and versioned first.
+
+Source operations remain subject to the adapter-actionable minimum when translated by the bridge. A fallback inventory must not become a handwritten substitute for an exhaustive upstream API model, and the bridge must not reproduce source details that do not change an Adapter decision. Conversely, the bridge must retain separate translations or multiple Condition templates when collapsing them would lose authorization, provisioning, policy, or other adapter-actionable meaning.
+
+The [Service Operation Authoring Guide](service-operation-authoring.md) provides the complete source-selection tutorial, end-to-end NATS example, artifact ownership boundaries, and change-propagation model. The [SDK Integration Guide](sdk-integration-guide.md#2-service-semantic-authority) defines the SDK-facing responsibilities and packaging relationship.
+
+## 1.4 Non-SDK Sources
+
+The same minimum applies to declarative code packages, no-op bindings, configuration-file analysis, infrastructure definitions, protocol schemas, API descriptions, and manual profile authoring. These sources can contain far more detail than an Adapter needs. Their generators should project source evidence into extension vocabulary rather than reproduce the source format in the profile.
+
+For example, a connection string parser may observe username, password, host, port, database, query parameters, TLS options, driver flags, and pool settings. An extension should expose only the properties required for portable fulfillment. Secret values, concrete environment values, driver tuning, and application-local pool behavior remain outside the Condition even though the parser can observe them.
+
+## 1.5 Review and Size Discipline
+
+Human review should focus on the authored semantic contract and the Adapter decisions it enables. Exhaustive service operation inventories, generated validation expansions, and SDK symbol mappings should be deterministic artifacts accompanied by concise semantic summaries; extension maintainers should not be asked to approve them line by line.
+
+Compact serialization is still desirable. Repeated schema branches or enumerations should be factored when equivalent validation can be expressed more simply. However, reducing file size is not a reason to discard a distinction that materially changes safe fulfillment, and a small file is not evidence that every field is necessary.
+
+For every extension-owned field or operation dimension, its authoring documentation should state:
+
+- The Adapter decision enabled by the distinction
+- Why a coarser representation is insufficient
+- The authoritative semantic source or ownership decision
+- What related source, SDK, or protocol details are intentionally excluded
+
+# 2. Ownership
 
 An extension definition owns only the vocabulary it introduces.
 
@@ -37,7 +120,7 @@ Condition fields with the same `name` can coexist only when their kind/type scop
 
 ---
 
-# 2. Base Extensions
+# 3. Base Extensions
 
 A base extension introduces vocabulary directly.
 
@@ -71,7 +154,7 @@ Because this extension owns `api`, `datastore`, `cache`, `http`, `relational`, `
 
 ---
 
-# 3. Additive Extensions
+# 4. Additive Extensions
 
 An additive extension builds on dependency-owned vocabulary without copying it.
 
@@ -113,7 +196,7 @@ plus the rules for values inside that field.
 
 ---
 
-# 4. Field Values
+# 5. Field Values
 
 Use `fieldValues` to define allowed values for extension-owned fields in a specific vocabulary scope.
 
@@ -161,7 +244,7 @@ This allows unusual field paths such as `access.identity.kind`, `validation.name
 
 ---
 
-# 5. Schemas
+# 6. Schemas
 
 Extension schemas should validate the fields owned by that extension and leave unrelated fields open.
 
@@ -205,7 +288,7 @@ For first-party tooling support, `schemas[].appliesToKind` must resolve to exact
 
 ---
 
-# 6. Declarative Code Packages
+# 7. Declarative Code Packages
 
 Declarative code packages should mirror extension ownership. The examples in this section use Go because that is the current first-party implementation.
 
@@ -285,7 +368,7 @@ Adapters and validators still resolve transitive extension dependencies from ext
 
 ---
 
-# 7. Declarative Code Package Bindings
+# 8. Declarative Code Package Bindings
 
 An extension-side declarative code package uses `runtimeconditions.bindings.yaml`.
 That binding manifest maps source calls back to extension-owned profile
@@ -398,8 +481,14 @@ When validating a single extension directory in this repository, sibling extensi
 
 ---
 
-# 8. Authoring Checklist
+# 9. Authoring Checklist
 
+- Apply the adapter-actionable minimum before defining vocabulary or validation rules.
+- Document the materially different Adapter decision enabled by each field or operation dimension.
+- Prefer a coarser stable representation when it enables the same safe fulfillment behavior.
+- Do not mirror an API model, SDK surface, library abstraction, configuration format, or analyzer output into extension vocabulary.
+- Keep SDK symbols, wrapper structure, execution paths, retry behavior, and other recognition evidence in SDK mappings rather than Conditions.
+- Allow service-specific operation detail only when it changes authorization, provisioning, policy, configuration, or another concrete Adapter outcome.
 - Define only vocabulary your extension owns.
 - Declare dependencies for vocabulary you reference but do not own.
 - Scope additive fields to the dependency-owned kinds and interface types they augment.

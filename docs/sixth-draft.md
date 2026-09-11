@@ -52,6 +52,8 @@ Concerns specifically beyond the scope of this specification include:
 
 Profiles MAY be serialized as YAML or JSON.
 
+First-party Runtime Conditions tooling MUST use YAML as its serialization standard and MUST emit YAML for generated profiles, extension artifacts, SDK integration metadata, indexes, manifests, state, and evidence. A consumer MAY accept a JSON representation of a profile for interoperability, but first-party generators MUST NOT create a parallel JSON artifact contract. JSON Schema used inside an extension definition is a validation vocabulary and does not change the YAML serialization requirement.
+
 Serialized profiles are invalid if:
 
 - A mapping contains duplicate keys
@@ -283,6 +285,10 @@ Examples:
 
 Extension identifiers are case-sensitive.
 
+An extension identifier used for a published release MUST be immutable: resolving the same identifier at a later time MUST NOT produce different vocabulary or validation semantics. A semantic change requires a new exact extension identifier. The Runtime Conditions `apiVersion` identifies the extension document schema and MUST NOT be used as the extension's semantic release version.
+
+Extensions SHOULD encode an independently versioned semantic release in their identifier. `metadata.version` MAY repeat that release for tooling and human readability; when present, it MUST identify the same release represented by `metadata.id`.
+
 ## 5.2 Extension Declarations
 
 ```yaml
@@ -316,7 +322,29 @@ A profile is invalid if:
 
 Extensions are defined as independent artifacts.
 
-## 6.1 Extension Definition Fields
+## 6.1 Adapter-Actionable Minimum
+
+The primary extension-authoring principle is the **adapter-actionable minimum**: an extension SHOULD define the smallest portable vocabulary that allows an Adapter to distinguish materially different fulfillment decisions.
+
+A distinction is adapter-actionable when it can change how a target platform, catalog, policy system, configuration system, or deployment workflow fulfills a Condition. Examples include selecting a different class of external service, granting a different permission, applying a different network or gateway policy, or supplying a different category of workload configuration. Detail that merely describes how an application or library is implemented is not adapter-actionable.
+
+An extension MUST NOT mirror an external API, protocol model, SDK surface, library abstraction, configuration format, or source-code structure solely because that detail is available. Each added kind, interface type, field, field value, operation dimension, and validation rule SHOULD be justified by a portable adapter decision that would be impossible, unsafe, or materially less precise without it.
+
+The appropriate minimum is extension-specific. A datastore Condition may need only an engine distinction. An HTTP integration may need method and path when an Adapter uses them to configure an allowlist, but does not need them when endpoint access is the only actionable requirement. A service-specific extension may include canonical operations when they change authorization or provisioning behavior. One extension's valid operation-level depth does not require unrelated extensions to expose comparable detail.
+
+SDK mappings, generated service mappings, static analyzers, declarative code packages, and other profile-generation inputs MAY contain substantially more detail than the extension vocabulary. They MUST NOT cause SDK class names, method names, wrapper structure, retry behavior, request-model fields, or other implementation details to become extension vocabulary. When such source detail reveals an adapter-actionable requirement, the extension MUST express that requirement using canonical service, protocol, or integration semantics independent of the originating SDK or tool. Multiple SDK methods MAY map to one extension-defined capability, while one SDK method MAY resolve to multiple Conditions when source evidence proves multiple external requirements.
+
+SDK integration tooling SHOULD derive canonical service operations from an authoritative machine-readable service model when one exists. When no adequate authoritative operation model exists, service stakeholders SHOULD maintain one language-neutral Service Operations Inventory named `service-operations-inventory.yaml`. The inventory MUST form one cohesive service-operation result set and MUST NOT contain Runtime Conditions semantics or language-specific SDK symbols.
+
+An extension-owned Service Operations Semantic Bridge named `service-operations-semantic-bridge.yaml` SHOULD reference the authoritative Smithy, OpenAPI, protobuf, or comparable service artifact when one exists, and SHOULD reference the exact fallback Service Operations Inventory otherwise. The bridge defines only the reviewed translation from service operations and inputs to the adapter-actionable Condition vocabulary. It MAY be used to generate operation-oriented extension vocabulary and the language-neutral service mapping, but MUST NOT become runtime input required by an Adapter and MUST NOT cause the published extension to contain authoring provenance.
+
+A service operation that maps to existing Condition vocabulary MAY change the bridge and generated service mapping without requiring a new extension release. Every SDK mapping for an SDK release that exposes the operation MUST still be updated or regenerated so its public symbol references the canonical service operation and existing Condition. A translation that requires new adapter-facing vocabulary MUST revise and version the extension before an SDK mapping targets it.
+
+This principle applies equally when a profile is produced without an SDK mapping. Manually authored declarations, no-op bindings, configuration analysis, protocol specifications, API models, and other sources SHOULD project only the adapter-actionable requirement into a Condition. The detection mechanism does not determine the semantic depth of the extension.
+
+The non-normative [Extension Authoring Guide](guides/extension-authoring.md#1-adapter-actionable-minimum) provides the detailed inclusion test, SDK and non-SDK examples, and review guidance for applying this principle. The [Service Operation Authoring Guide](guides/service-operation-authoring.md) explains the authoritative-source decision, last-resort Service Operations Inventory, semantic bridge, extension, service mapping, ownership boundaries, and change propagation as one end-to-end workflow. The [SDK Integration Guide](guides/sdk-integration-guide.md#2-service-semantic-authority) defines the SDK-facing authoring and packaging responsibilities.
+
+## 6.2 Extension Definition Fields
 
 ```yaml
 apiVersion: runtimeconditions.io/v1alpha1
@@ -324,6 +352,7 @@ kind: RuntimeConditionsExtensionDefinition
 
 metadata:
   id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  version: v1alpha1
 
 spec:
   kinds: []
@@ -336,9 +365,9 @@ spec:
 | `metadata` | object | YES | Extension identity |
 | `spec` | object | YES | Extension vocabulary, dependencies, and validation schemas |
 
-`metadata.id` MUST identify the extension definition and MUST be a valid extension identifier.
+`metadata.id` MUST identify the extension definition and MUST be a valid immutable extension identifier. `metadata.version`, when present, identifies the extension's semantic release rather than the Runtime Conditions document schema version.
 
-## 6.2 Extension Spec Fields
+## 6.3 Extension Spec Fields
 
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
@@ -354,7 +383,7 @@ An extension MUST define at least one vocabulary item or validation schema.
 
 Each `dependencies` item MUST be an exact extension identifier.
 
-## 6.3 Vocabulary Definition Fields
+## 6.4 Vocabulary Definition Fields
 
 Each `kinds` entry MUST include:
 
@@ -414,7 +443,7 @@ Each extension schema validates a Condition object after the profile has been co
 
 A schema applies to a Condition when all declared scope fields match the Condition. Omitted scope fields do not restrict applicability.
 
-## 6.4 Extension Definition Example
+## 6.5 Extension Definition Example
 
 ```yaml
 apiVersion: runtimeconditions.io/v1alpha1
@@ -665,7 +694,10 @@ A conforming profile MUST:
 A conforming extension MUST:
 
 - Use a valid extension identifier
+- Preserve immutable semantics for every published extension identifier
 - Provide a valid extension definition artifact
+- Apply the adapter-actionable minimum to its vocabulary and validation semantics
+- Avoid mirroring API, SDK, library, protocol, configuration, or source-model detail that does not enable a materially different portable Adapter decision
 - Identify all vocabulary it defines
 - Declare exact-version dependencies on vocabulary defined by other extensions
 - Avoid redefining vocabulary defined by another resolved extension
