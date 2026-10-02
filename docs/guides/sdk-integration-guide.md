@@ -32,7 +32,7 @@ The SDK package convention solves this by allowing SDK authors to ship:
 
 # 2. Service Semantic Authority
 
-SDK authorship begins with service semantics, not language symbols. Before mapping any SDK class, method, function, or command, the integration must identify the language-neutral source that defines the service operations and the reviewed translation from those operations to an exact Runtime Conditions extension release.
+SDK authorship begins with service facts, not language symbols. Before mapping any SDK class, method, function, or command, the integration must identify the language-neutral source that defines the service operations and the exact Runtime Conditions extension release capable of expressing the integration requirements those operations prove.
 
 Use an authoritative machine-readable service description when one adequately identifies the operation surface. Smithy models, OpenAPI descriptions, protobuf service definitions, and comparable provider-maintained specifications belong in this category. Reference the exact authoritative artifact needed for reproducible generation and do not copy its operation inventory into another hand-maintained file.
 
@@ -45,27 +45,27 @@ A Service Operations Inventory records:
 - Service-owned operation inputs and input requiredness
 - Service-domain value shapes and constraints needed to interpret those inputs
 
-A Service Operations Inventory does not contain Runtime Conditions extension coordinates, Condition semantics, Adapter behavior, package paths, class names, method names, argument positions, generated model types, wrapper call graphs, or language-specific state flow. Runtime Conditions semantics belong in a Service Operations Semantic Bridge; language facts belong in SDK mappings.
+A Service Operations Inventory does not contain Runtime Conditions extension coordinates, Adapter behavior, package paths, class names, method names, argument positions, generated model types, wrapper call graphs, or language-specific state flow. It should contain the neutral service facts needed by service tooling and should be sufficient for direct projection whenever those facts fully describe the external integration.
 
-A **Service Operations Semantic Bridge**, using the standard filename `service-operations-semantic-bridge.yaml`, references the authoritative Smithy, OpenAPI, protobuf, or other provider model when one exists; otherwise it references the exact fallback Service Operations Inventory. The bridge answers the authoring question “What adapter demand does a particular service operation prove?” It owns only the reviewed translation from source operations and inputs to extension Condition semantics. It does not duplicate a complete authoritative model, contain SDK symbols, or become part of the runtime contract consumed by an Adapter.
+Direct projection from the authoritative service description or fallback inventory is the default. A separate Service Operations Semantic Bridge is not required. If a specific resource identity, operation effect, scope, role, expansion, or other adapter-actionable fact cannot be derived safely from the selected authority, service and extension stakeholders may maintain the smallest possible `service-operations-semantic-bridge.yaml` as a supplement. It records only those residual decisions or exceptions. It is not Runtime Conditions vocabulary, has no inherent runtime value, and must not duplicate the service model.
 
-The authoritative service description or fallback inventory and its semantic bridge compile into a deterministic extension definition and `RuntimeConditionsServiceMapping`. The extension remains the standalone vocabulary and validation contract. The generated service mapping records exact extension coordinates, canonical operation-to-Condition translations, and semantic digests. Every language-specific SDK mapping references operations from that service mapping and records its digest. The maintenance relationship is therefore one service semantic authority and bridge to many SDK languages and releases.
+The selected operation authority, plus that optional supplement only when needed, can compile into a deterministic extension definition and `RuntimeConditionsServiceMapping`. The extension remains the standalone vocabulary and validation contract. The generated service mapping records exact extension coordinates, canonical operation-to-Condition projections, and semantic digests. Every language-specific SDK mapping references operations from that service mapping and records its digest. The maintenance relationship is therefore one service authority and optional service-owned supplement to many SDK languages and releases.
 
-Source, extension, and SDK release changes have separate maintenance outcomes. A new source operation that maps to existing Condition vocabulary changes the bridge or generated service mapping without necessarily changing the extension. Every affected SDK mapping must still regenerate or be updated when its SDK release exposes that operation, so its public method can reference the canonical service operation and existing Condition. An SDK that does not expose the operation does not invent a mapping for it. If the translation requires new adapter-facing vocabulary, the extension must be revised and versioned before SDK mappings target it.
+Source, extension, and SDK release changes have separate maintenance outcomes. A new source operation that maps to existing Condition vocabulary can change only the generated service mapping. An optional supplement changes only if its residual projection decisions are affected. Every affected SDK mapping must still regenerate or be updated when its SDK release exposes that operation, so its public method can reference the canonical service operation and existing Condition. An SDK that does not expose the operation does not invent a mapping for it. If projection requires new adapter-facing vocabulary, the extension must be revised and versioned before SDK mappings target it.
 
 The standard repository naming convention is:
 
 | Artifact | Standard name | Role |
 | --- | --- | --- |
 | Maintained fallback source | `service-operations-inventory.yaml` | Reviewed, cohesive service operation authority when no adequate upstream machine-readable model exists |
-| Reviewed semantic translation | `service-operations-semantic-bridge.yaml` | Maps authoritative or fallback service operations to adapter-actionable extension Conditions |
-| Generated service projection | `<service>-service-mapping.yaml` | Deterministic language-neutral mapping from canonical operations to extension Conditions |
+| Optional source-model supplement | `service-operations-semantic-bridge.yaml` | Records only concrete integration facts or projection exceptions that cannot be derived from the authoritative model or fallback inventory; omit it otherwise |
+| Generated service projection | `<service>-service-mapping.yaml` | Deterministic language-neutral projection from canonical operations to extension Conditions using the authority directly and any necessary supplement |
 | Generated language projection | `runtimeconditions.sdk-mapping.yaml` | Deterministic mapping from one SDK release's public surface to canonical service operations |
 | Published extension release | `runtimeconditions.extension.yaml` | Immutable Condition vocabulary and validation contract |
 
 NATS is the current maintained-inventory example. AWS S3 instead begins with the public AWS Smithy model, and Kubernetes begins with the published OpenAPI description. These are different source workflows that converge on the same language-neutral service-mapping boundary.
 
-The [Service Operation Authoring Guide](service-operation-authoring.md) provides a full tutorial covering source selection, the last-resort inventory path, semantic bridge authoring, extension and service-mapping generation, change propagation, and an end-to-end NATS operation.
+The [Service Operation Authoring Guide](service-operation-authoring.md) provides a full tutorial covering source selection, direct projection, the last-resort inventory path, the narrow test for an optional supplement, extension and service-mapping generation, change propagation, and an end-to-end NATS operation.
 
 ---
 
@@ -75,7 +75,7 @@ An SDK or production library author SHOULD:
 
 - Identify SDK operations that imply external runtime integration requirements.
 - Reuse the authoritative service mapping for the selected extension release rather than defining service semantics in a language mapping.
-- Participate in review of a `service-operations-inventory.yaml` only when no adequate authoritative machine-readable service model exists.
+- Participate in review of a `service-operations-inventory.yaml` only when no adequate authoritative machine-readable service model exists and the SDK maintainer also chooses to participate as a service stakeholder; this is not an SDK packaging obligation.
 - Define or reference the Runtime Conditions extension vocabulary for those requirements.
 - Ship a `runtimeconditions.package.yaml` manifest in the imported package.
 - Package the extension definition as `runtimeconditions.extension.yaml` next to that manifest.
@@ -102,7 +102,7 @@ Language tooling SHOULD accept named source parameters and compile them into the
 
 SDK object flow can require mapped state even when a method does not itself emit a Condition. A connection factory can create a new dependency identity; a method returning a service context can inherit that identity; a method returning a bucket-bound object can retain a source-proven bucket value; and later calls can bind from that retained state. These constructs are language-level analysis capabilities. The profiler MUST receive every SDK-specific class, field, method, and operation name from version-aligned metadata rather than embedding those names in generic profiler code.
 
-The generator and source validator are Runtime Conditions tooling responsibilities, not files SDK maintainers should rewrite per release. The maintainer reviews relevant semantic bridge or SDK annotation changes, classifications for newly introduced public behavior, and representative source-to-profile changes. The release ships one generated `runtimeconditions.sdk-mapping.yaml` plus a small `runtimeconditions/index.yaml` at the package's conventional metadata location. Static metadata MUST NOT add imported runtime code, initialization behavior, a Runtime Conditions runtime dependency, or application configuration.
+The generator and source validator are Runtime Conditions tooling responsibilities, not files SDK maintainers should rewrite per release. The SDK maintainer reviews SDK annotation changes, classifications for newly introduced public behavior, and representative source-to-profile changes. A service owner may separately ask them for domain review, but SDK support MUST NOT make them maintain an inventory, semantic supplement, extension, or service mapping. The release ships one generated `runtimeconditions.sdk-mapping.yaml` plus a small `runtimeconditions/index.yaml` at the package's conventional metadata location. Static metadata MUST NOT add imported runtime code, initialization behavior, a Runtime Conditions runtime dependency, or application configuration.
 
 ---
 

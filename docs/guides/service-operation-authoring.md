@@ -4,9 +4,9 @@
 
 **Non-normative implementation guidance**
 
-This guide explains how an authoritative service model or fallback Service Operations Inventory, a Service Operations Semantic Bridge, a Runtime Conditions extension, and a generated service mapping work together. It is intended for service owners, extension authors, SDK maintainers, generator implementers, and reviewers.
+This guide explains how an authoritative service model or fallback Service Operations Inventory projects into a Runtime Conditions extension and a generated service mapping, and when a small supplemental artifact is justified because the source cannot supply a required integration fact. It is intended for service owners, extension authors, SDK maintainers, generator implementers, and reviewers.
 
-The most important rule is simple: **do not create a Service Operations Inventory when an adequate authoritative machine-readable service model already exists.** An inventory is the last-resort operation authority, not a required layer in every Runtime Conditions integration.
+The most important rule is simple: **do not create an authoring artifact unless it contains information that cannot be obtained from a better source.** A Service Operations Inventory is a last-resort operation authority. A Service Operations Semantic Bridge is an optional source-model supplement. Neither is a required layer in every Runtime Conditions integration.
 
 ---
 
@@ -19,23 +19,25 @@ flowchart TD
     A{"Adequate authoritative machine-readable service model?"}
     A -->|Yes| B["Reference Smithy, OpenAPI, protobuf, or equivalent source"]
     A -->|No| C["Maintain a Service Operations Inventory"]
-    B --> D["Service Operations Semantic Bridge"]
+    B --> D{"Can required integration facts be derived safely?"}
     C --> D
-    D --> E["Deterministic compiler"]
+    D -->|Yes| E["Deterministic compiler"]
+    D -->|No| S["Maintain the smallest semantic supplement"]
+    S --> E
     E --> F["Runtime Conditions extension"]
     E --> G["Language-neutral service mapping"]
 ```
 
-The four artifacts do not form a stack that every runtime consumer loads. They divide authoring responsibilities:
+These artifacts do not form a stack that every integration must create or every runtime consumer must load. They divide authoring responsibilities only where each responsibility actually exists:
 
 | Artifact | Required? | Authored or generated? | Primary responsibility | Primary consumer |
 | --- | --- | --- | --- | --- |
-| Service Operations Inventory | Only when no adequate authoritative model exists | Authored or independently generated service artifact | Describe language-neutral service operations, inputs, and service-domain shapes without Runtime Conditions semantics | Semantic bridge compiler and other service tooling |
-| Service Operations Semantic Bridge | Yes for this operation-oriented workflow | Small reviewed Runtime Conditions authoring artifact | Translate service operations and inputs into adapter-actionable Condition semantics | Extension and service-mapping compiler |
-| Runtime Conditions extension | Yes | Deterministically generated when the bridge is complete | Define and validate the portable Condition vocabulary used in profiles | Profile generators, validators, adapters, and other profile consumers |
-| Runtime Conditions service mapping | Yes for SDK mapping generation | Deterministically generated | Record canonical operation-to-Condition translations with exact source, bridge, and extension identity | Language-specific SDK mapping generators and validation tooling |
+| Service Operations Inventory | Only when no adequate authoritative model exists | Authored or independently generated neutral service artifact | Describe language-neutral service operations, inputs, and service-domain shapes without Runtime Conditions document concepts | Service projection and other service tooling |
+| Service Operations Semantic Bridge | Only when a concrete required fact cannot be derived safely from the selected authority | Small reviewed supplement owned by service and extension stakeholders | Supply only the residual integration facts or projection exceptions missing from the authority | Extension and service-mapping compiler |
+| Runtime Conditions extension | Yes | Deterministically generated when the authority and any required supplement provide complete inputs; otherwise maintained | Define and validate the portable Condition vocabulary used in profiles | Profile generators, validators, adapters, and other profile consumers |
+| Runtime Conditions service mapping | Yes for SDK mapping generation | Deterministically generated when the source permits it | Record canonical operation-to-Condition projections with exact source, optional-supplement, and extension identity | Language-specific SDK mapping generators and validation tooling |
 
-The extension and service mapping are siblings generated from the same reviewed semantics. The service mapping is not a layer inside the extension, and the extension does not contain a paper trail back to the operation source.
+The extension and service mapping are sibling outputs from the same service facts. The service mapping is not a layer inside the extension, and the extension does not contain a paper trail back to the operation source. The purpose of the workflow is to expose integration intent already present in service and application behavior, not to create a separate body of Runtime Conditions meaning.
 
 ---
 
@@ -50,9 +52,9 @@ Use a provider-maintained machine-readable source when it adequately identifies 
 - Protobuf service definitions
 - Protocol schemas or comparable provider-maintained models
 
-The semantic bridge references the authoritative artifact directly, including the repository or publication location, model path or identity, and the fingerprints needed for reproducible generation and drift detection. Do not copy the complete operation list into another maintained YAML file merely to make it look like an inventory.
+Projection tooling references the authoritative artifact directly, including the repository or publication location, model path or identity, and the fingerprints needed for reproducible generation and drift detection. Do not copy the complete operation list into another maintained YAML file merely to make it look like an inventory or satisfy a Runtime Conditions convention.
 
-Amazon S3 follows this path. Its semantic bridge references AWS's public Smithy model. Kubernetes also follows this path: its bridge references the authoritative Kubernetes OpenAPI document. A deterministic normalized OpenAPI build projection may be cached for generation, but that cache is not a maintained Service Operations Inventory and is not the semantic authority.
+Amazon S3 follows this source path through AWS's public Smithy model. Kubernetes follows it through the authoritative Kubernetes OpenAPI document. Their current prototype compilers also consume bridge files, but those implementation inputs must be audited to determine which fields are actually absent from the authoritative source. Their existence is evidence about the prototypes, not proof that every Smithy or OpenAPI integration needs a bridge. A deterministic normalized build projection may be cached for generation, but that cache is not a maintained Service Operations Inventory and is not the semantic authority.
 
 ## 2.2 Last-resort path: a Service Operations Inventory
 
@@ -81,11 +83,13 @@ NATS currently follows this fallback path. Its inventory is maintained in the se
 
 ---
 
-# 3. Step Two: Author the Semantic Bridge
+# 3. Step Two: Test Direct Projection and Supplement Only Real Gaps
 
-The Service Operations Semantic Bridge answers: **What adapter demand does a particular service operation prove?**
+First attempt to generate the extension and service mapping directly from the selected operation authority. The projection should preserve only source-proven facts that pass the adapter-actionable-minimum test. A source field does not need a second human-authored assertion merely because Runtime Conditions gives its serialized destination a different field name.
 
-The bridge always references the selected operation authority. Its `operationSource.kind` makes the source path explicit:
+Create a Service Operations Semantic Bridge only when that attempt identifies a concrete missing fact needed to expose the integration intent. The question it answers is narrowly: **Which required projection fact cannot this service authority express or derive safely?** Examples may include a stable resource-identity path absent from the model, a service-owned role distinction represented only in prose, or an operation expansion whose externally relevant effect is not encoded by the source.
+
+The optional supplement references the selected operation authority. Its `operationSource.kind` makes the source path explicit:
 
 ```yaml
 operationSource:
@@ -110,9 +114,8 @@ operationSource:
   semanticSha256: 0f6fb3a7c5f1f3c8c780724057ef96ca22a7b2d0c2766f493e22d5f444c88ee8
 ```
 
-The remainder of the bridge records only Runtime Conditions translation decisions that cannot be inferred safely from the source. Depending on the service, these decisions can include:
+The remainder of the supplement records only facts or decisions that cannot be inferred safely from the source. Depending on the service, these may include:
 
-- Which Condition kind and interface type represent the demand
 - Whether several service operations share one adapter-facing capability
 - Which source action becomes which Condition action or verb
 - Which operation input supplies a Condition field
@@ -120,9 +123,9 @@ The remainder of the bridge records only Runtime Conditions translation decision
 - Whether one operation proves multiple Conditions
 - Resource identity paths, roles, scopes, or other adapter-actionable distinctions
 
-The bridge must not repeat SDK symbols or copy a full Smithy, OpenAPI, protobuf, or inventory document. It is deliberately smaller than the operation source and normally much smaller than generated extension or SDK mapping artifacts.
+Extension identity, output paths, generated document envelopes, and field renaming that can be declared once in ordinary compiler configuration do not by themselves justify a semantic supplement. The supplement must not repeat SDK symbols or copy a full Smithy, OpenAPI, protobuf, or inventory document.
 
-The bridge is a review surface. Humans approve what an operation proves; the compiler proves that the referenced operations and inputs exist and expands those decisions consistently.
+When a supplement is necessary, humans review only its residual decisions while the compiler proves that referenced operations and inputs exist and expands those decisions consistently. When it contains no irreducible decision, delete it and project directly. SDK authors are not responsible for creating or maintaining this service-level artifact as a condition of packaging an SDK mapping.
 
 ---
 
@@ -130,20 +133,20 @@ The bridge is a review surface. Humans approve what an operation proves; the com
 
 The Runtime Conditions extension is the standalone portable vocabulary and validation contract. It defines which Conditions profiles may contain, not how the authoring team discovered those semantics.
 
-An operation-oriented compiler can generate the extension from the selected operation source plus the semantic bridge when the bridge contains every required adapter-facing decision. Generation can safely perform repetitive work such as:
+An operation-oriented compiler can generate the extension from the selected operation source, plus the optional supplement when necessary, when those inputs contain every required adapter-facing fact. Generation can safely perform repetitive work such as:
 
 - Expanding allowed operation or capability values
 - Building JSON Schema validation branches
 - Ensuring required and optional fields match each Condition form
 - Generating interface types and field-value definitions
 - Computing immutable semantic digests
-- Rejecting bridge references that no longer resolve against the authoritative source
+- Rejecting optional-supplement references that no longer resolve against the authoritative source
 
 Generation does not decide what an operation should mean. It turns reviewed meaning into complete, deterministic validation artifacts.
 
-The published extension does not need to identify the Smithy file, OpenAPI document, inventory operation, semantic bridge, or SDK method that produced a Condition. A profile validator or platform adapter needs the Condition vocabulary and validation rules, not the authoring paper trail.
+The published extension does not need to identify the Smithy file, OpenAPI document, inventory operation, optional supplement, or SDK method that produced a Condition. A profile validator or platform adapter needs the Condition vocabulary and validation rules, not the authoring paper trail.
 
-Extensions that are not operation-oriented may not need a semantic bridge at all. For example, an environment-configuration extension can be authored directly when no external service-operation source is involved.
+Most extensions should not need a semantic supplement. For example, an environment-configuration extension can be authored directly when no external service-operation source is involved, and a sufficiently expressive service model can support direct operation projection without another document.
 
 ---
 
@@ -155,13 +158,13 @@ A service mapping normally contains:
 
 - The canonical service identity
 - Exact extension identifier, version, and semantic digest
-- Source and semantic-bridge digests
+- Source and optional-supplement digests
 - Stable service operation names
 - One or more Condition templates for each mapped operation
 - Required and optional bindings from operation inputs into Condition fields
 - Generated service resource lookup data when a language integration needs it
 
-The service mapping is generated output and should not be reviewed line by line. Reviewers inspect the semantic bridge, a focused change summary, representative Condition examples, and adapter impact.
+The service mapping is generated output and should not be reviewed line by line. Reviewers inspect the authoritative-source difference, any affected optional-supplement decisions, a focused change summary, representative Condition examples, and adapter impact.
 
 Language-specific SDK mapping generators consume the service mapping and add only SDK-owned information: public symbols, parameter locations, typed state, wrappers, delegation, and release identity. A profiler may consume a self-contained SDK mapping in which the required service operation records have been sealed at build time; the application developer should not be required to locate or configure the service mapping.
 
@@ -190,9 +193,9 @@ operations:
 
 This does not create a Runtime Conditions `nats` kind or require that a profile contain `resource`, `action`, or `subject`. It only states what the service operation is.
 
-## 6.2 Reviewed bridge decision
+## 6.2 Current supplemental decision
 
-The NATS semantic bridge translates that service operation into a Condition form:
+The current NATS prototype uses a semantic bridge to translate that service operation into a Condition form:
 
 ```yaml
 extension:
@@ -212,7 +215,7 @@ operationMappings:
       required: true
 ```
 
-This is the human-reviewed assertion that publishing to a subject proves a NATS service demand with publish authorization for the source-proven subject.
+This is the human-reviewed assertion that publishing to a subject proves a NATS service demand with publish authorization for the source-proven subject. In this excerpt, however, the inventory already supplies the operation, resource, action, input, and requiredness, while the extension can supply its own kind and interface type. The excerpt therefore demonstrates duplication, not a proven need for a separate bridge. Unless the full audit finds another non-derivable fact, the compiler should project the inventory directly and this supplement should be removed.
 
 ## 6.3 Generated extension result
 
@@ -254,7 +257,7 @@ interface:
     subject: orders.created
 ```
 
-The application developer wrote ordinary SDK code. They did not author an inventory, bridge, service mapping, or SDK mapping.
+The application developer wrote ordinary SDK code. They did not author an inventory, optional supplement, service mapping, or SDK mapping.
 
 ---
 
@@ -262,17 +265,17 @@ The application developer wrote ordinary SDK code. They did not author an invent
 
 Each artifact changes for a different reason. Treating them as one versioned document would create unnecessary maintenance and couple unrelated owners.
 
-| Change | Operation authority | Semantic bridge | Extension | Service mapping | Affected SDK mapping |
+| Change | Operation authority | Optional supplement | Extension | Service mapping | Affected SDK mapping |
 | --- | --- | --- | --- | --- | --- |
 | Source formatting or metadata changes without semantic change | Updated upstream or inventory serialization | No semantic edit | Unchanged | Provenance may regenerate | Only if SDK source also changed |
-| New source operation maps to existing Condition vocabulary | Adds operation | Add or approve translation when required by bridge style | Unchanged if vocabulary and validation are unchanged | Regenerate | Regenerate for every SDK release that exposes the operation |
-| Existing operation changes which demand it proves | May change | Review and update translation | Revise only if Condition vocabulary or validation changes | Regenerate | Regenerate and validate affected SDK mappings |
-| New adapter-facing distinction is required | May be unchanged | Add the reviewed distinction | Revise and version | Regenerate against the new extension | Regenerate compatible SDK mappings |
+| New source operation maps to existing Condition vocabulary | Adds operation | Unchanged unless the projection depends on a residual rule | Unchanged if vocabulary and validation are unchanged | Regenerate | Regenerate for every SDK release that exposes the operation |
+| Existing operation changes which demand it proves | May change | Review only affected residual decisions | Revise only if Condition vocabulary or validation changes | Regenerate | Regenerate and validate affected SDK mappings |
+| New adapter-facing distinction is required | May be unchanged | Add only a fact that cannot live in or be derived from the authority | Revise and version | Regenerate against the new extension | Regenerate compatible SDK mappings |
 | SDK adds or renames a method for an existing service operation | Unchanged | Unchanged | Unchanged | Unchanged | Regenerate that SDK mapping |
 
 The second row is especially important: **extension unchanged does not mean SDK mapping unchanged.** A new SDK method still needs a language-specific mapping to the canonical service operation and existing Condition.
 
-Some extensions deliberately include canonical operation names as adapter-facing vocabulary. Amazon S3 does this because operation names can affect authorization, so a new S3 operation normally changes the extension. Kubernetes and NATS can map multiple source operations to existing verbs or capabilities when no new adapter distinction is needed. Whether the extension changes depends on its adapter-actionable vocabulary, not on a universal rule that every new API operation creates a new Condition value.
+Some extensions deliberately include canonical operation names as adapter-facing vocabulary. Amazon S3 does this because operation names can affect authorization, so a new S3 operation normally changes the extension. Kubernetes and NATS can map multiple source operations to existing verbs or capabilities when no new adapter distinction is needed. Whether the extension changes depends on its adapter-actionable vocabulary, not on whether an optional supplement exists or on a universal rule that every new API operation creates a new Condition value.
 
 ---
 
@@ -286,14 +289,15 @@ Some extensions deliberately include canonical operation names as adapter-facing
 
 ## Extension author and adapter stakeholders
 
-- Author and review the semantic bridge.
+- Test whether the selected authority supports direct projection.
+- Maintain and review a semantic supplement only for identified source-model gaps.
 - Apply the adapter-actionable minimum.
 - Decide whether a source distinction changes portable fulfillment, authorization, policy, configuration, or provisioning.
 - Review and version the extension when its public vocabulary changes.
 
 ## Runtime Conditions generator maintainers
 
-- Validate exact source and bridge references.
+- Validate exact source and optional-supplement references.
 - Generate deterministic extension and service-mapping artifacts.
 - Produce focused semantic reviews and drift diagnostics.
 - Never ask maintainers to inspect complete generated operation tables line by line.
@@ -304,6 +308,7 @@ Some extensions deliberately include canonical operation names as adapter-facing
 - Maintain SDK-only wrappers, aliases, arguments, state flow, and delegation that cannot be generated from existing SDK models.
 - Regenerate mappings for affected SDK releases when service mappings or SDK surfaces change.
 - Do not reproduce service semantics in each programming language.
+- Do not maintain the Service Operations Inventory, optional semantic supplement, or extension merely because they package an SDK mapping; any participation in those service-level artifacts is a separate stakeholder role.
 
 ## Application developers
 
@@ -330,7 +335,7 @@ service-operations-inventories/
 extensions/
   <extension>/
     model/
-      service-operations-semantic-bridge.yaml
+      service-operations-semantic-bridge.yaml # optional; only for proven source-model gaps
       generated/
         <service>-service-mapping.yaml
     releases/
@@ -353,13 +358,14 @@ Before creating or changing this workflow, verify:
 
 - An adequate authoritative machine-readable service model was sought before creating an inventory.
 - A fallback inventory contains no Runtime Conditions or SDK semantics.
-- The semantic bridge references exactly one operation authority.
-- The bridge contains only translations that cannot be inferred safely.
+- Direct projection was attempted before creating a semantic supplement.
+- Any semantic supplement references exactly one operation authority and identifies the concrete source-model gap it fills.
+- Every supplement entry contains only information that cannot be inferred safely; delete the artifact if no such entry remains.
 - Every Condition distinction passes the adapter-actionable-minimum test.
-- The extension remains usable without the bridge or operation source.
-- The service mapping is deterministic and records exact source, bridge, and extension identity.
+- The extension remains usable without the supplement or operation source.
+- The service mapping is deterministic and records exact source, optional-supplement, and extension identity.
 - Generated files are not maintainer line-by-line review surfaces.
 - Affected SDK mappings regenerate even when an operation maps to unchanged extension vocabulary.
-- Application developers are not required to understand, maintain, or configure any authoring artifact in this pipeline.
+- SDK authors and application developers are not required to understand, maintain, or configure service-level artifacts outside their actual ownership.
 
 See the [Extension Authoring Guide](extension-authoring.md), [SDK Integration Guide](sdk-integration-guide.md), and [Generator Discovery Workflow](generator-discovery-workflow.md) for the adjacent authoring and consumption contracts.
