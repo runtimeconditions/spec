@@ -2,7 +2,8 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsExtensionDefinition
 
 metadata:
-  id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+  uri: https://aws.example.com/aws/object-store
+  version: v1alpha1
 
 spec:
   kinds:

@@ -21,8 +21,9 @@ platforms decide how to fulfill them.
 ## Contents
 
 - `docs/sixth-draft.md` - current core Runtime Conditions Profile draft.
-- `schema/runtimeconditions.profile.v0.1.0.schema.yaml` - versioned core profile
-  structure and its digest, documented in `schema/README.md`.
+- `schema/runtimeconditions.profile.schema.yaml` - the current core profile
+  structure, documented in `schema/README.md` and published as a versioned
+  GitHub Release asset.
 - `docs/runtime-conditions-whitepaper-draft.md` - whitepaper-oriented narrative.
 - `docs/guides/` - implementation guidance for extensions, package artifacts,
   SDK metadata, and generator discovery.

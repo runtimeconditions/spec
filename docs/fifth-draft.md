@@ -8,8 +8,8 @@ This document defines the core Runtime Conditions Profile format.
 
 First-party extension drafts define common integration vocabulary separately:
 
-- `https://runtimeconditions.io/extensions/common-integrations:v1alpha1`
-- `https://runtimeconditions.io/extensions/env-configuration:v1alpha1`
+- `https://runtimeconditions.io/common-integrations:v1alpha1`
+- `https://runtimeconditions.io/env-configuration:v1alpha1`
 
 ---
 
@@ -78,8 +78,8 @@ workload:
   version: v1.2.3
 
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
-  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
+  - https://runtimeconditions.io/common-integrations:v1alpha1
+  - https://runtimeconditions.io/env-configuration:v1alpha1
 
 conditions:
   - name: primary-db
@@ -275,7 +275,7 @@ Extension identifiers MUST have this form:
 
 The version delimiter is the final colon in the identifier. The extension URI is everything before that delimiter. The version is everything after that delimiter.
 
-The extension URI MUST be an absolute HTTP or HTTPS URI.
+The extension URI MUST be an absolute HTTPS URI.
 
 The version MUST be a non-empty string.
 
@@ -283,18 +283,30 @@ This specification does not define the syntax or semantics of extension versions
 
 Examples:
 
-- `https://runtimeconditions.io/extensions/common-integrations:v1alpha1`
-- `https://runtimeconditions.io/extensions/env-configuration:v1alpha1`
-- `https://extensions.example.com/runtimeconditions/aws-object-store:2026.06.0`
+- `https://runtimeconditions.io/common-integrations:v1alpha1`
+- `https://runtimeconditions.io/env-configuration:v1alpha1`
+- `https://extensions.example.com/aws/aws-object-store:2026.06.0`
 
 Extension identifiers are case-sensitive.
+
+The URI path MUST be `/<service-provider>/<service>` or `/<service>`.
+For retrieval only, an omitted provider MUST be interpreted as `rc`.
+Definitions MUST be fetched from
+`https://<domain>/extensions/<service-provider>/<service>/<version>/runtimeconditions.extension.yaml`.
+The fetched definition's URI and version MUST exactly match the requested
+identifier. A missing definition at that URL MUST fail as not found; no alternate
+provider or path may be tried. Only HTTPS retrieval is currently supported;
+`file:` and `oci:` retrieval are reserved for a later implementation.
+Credentials, query strings, fragments, empty or traversal path segments, and
+escaped path aliases MUST be rejected. The version MUST be a safe path segment.
+
 
 ## 5.2 Extension Declarations
 
 ```yaml
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
-  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
+  - https://runtimeconditions.io/common-integrations:v1alpha1
+  - https://runtimeconditions.io/env-configuration:v1alpha1
 ```
 
 The `extensions` array MUST NOT contain duplicate extension identifiers.
@@ -327,7 +339,7 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsExtensionDefinition
 
 metadata:
-  uri: https://runtimeconditions.io/extensions/common-integrations
+  uri: https://runtimeconditions.io/common-integrations
   version: v1alpha1
 
 spec:
@@ -341,7 +353,7 @@ spec:
 | `metadata` | object | YES | Extension identity |
 | `spec` | object | YES | Extension vocabulary, dependencies, and validation schemas |
 
-`metadata.uri` MUST identify the extension URI and MUST be an absolute HTTP or HTTPS URI.
+`metadata.uri` MUST identify the extension URI and MUST be an absolute HTTPS URI.
 
 `metadata.version` MUST identify the extension version.
 
@@ -431,7 +443,7 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsExtensionDefinition
 
 metadata:
-  uri: https://aws.example.com/runtimeconditions/object-store
+  uri: https://aws.example.com/aws/object-store
   version: v1alpha1
 
 spec:
@@ -773,7 +785,7 @@ workload:
   version: v1.2.3
 
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
+  - https://runtimeconditions.io/common-integrations:v1alpha1
 
 conditions:
   - name: primary-db
@@ -807,8 +819,8 @@ workload:
   version: v1.2.3
 
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
-  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
+  - https://runtimeconditions.io/common-integrations:v1alpha1
+  - https://runtimeconditions.io/env-configuration:v1alpha1
 
 conditions:
   - name: primary-db

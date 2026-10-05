@@ -1,0 +1,39 @@
+name: Release profile schema
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Stage and verify schema checksum
+        run: |
+          mkdir -p dist
+          cp schema/runtimeconditions.profile.schema.yaml dist/runtimeconditions.profile.schema.yaml
+          cd dist
+          sha256sum runtimeconditions.profile.schema.yaml > SHA256SUMS
+          sha256sum --check SHA256SUMS
+
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release create "${GITHUB_REF_NAME}"
+          --verify-tag
+          --latest
+          --title "${GITHUB_REF_NAME}"
+          dist/runtimeconditions.profile.schema.yaml
+          dist/SHA256SUMS

@@ -1,11 +1,11 @@
 $schema: https://json-schema.org/draft/2020-12/schema
-$id: https://runtimeconditions.io/schemas/profile/0.1.0/runtimeconditions.profile.schema.yaml
+$id: https://runtimeconditions.io/schemas/profile/0.2.0/runtimeconditions.profile.schema.yaml
 title: Runtime Conditions Profile core schema
 description: >-
-  Core structural rules for Runtime Conditions Profiles, version 0.1.0.
+  Core structural rules for Runtime Conditions Profiles, version 0.2.0.
   Extension-owned vocabulary and applicable extension schemas are validated
   against the resolved extension closure after this schema succeeds.
-x-runtimeconditions-version: '0.1.0'
+x-runtimeconditions-version: '0.2.0'
 type: object
 additionalProperties: false
 required:
@@ -54,7 +54,7 @@ $defs:
       availability, and the transitive dependency closure.
     type: string
     minLength: 1
-    pattern: '^[A-Za-z][A-Za-z0-9+.-]*:\S+$'
+    pattern: '^https://[^/?#@\s]+/[^/:?#%\s]+(?:/[^/:?#%\s]+)?:[^/:?#%\s]+$'
     format: uri
   metadata:
     type: object
