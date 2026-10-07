@@ -178,6 +178,7 @@ kind: RuntimeConditionsExtensionDefinition
 
 metadata:
   id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+  version: "v1alpha1"
 
 spec:
   kinds:
@@ -195,8 +196,10 @@ The SDK-owned extension definition should declare any first-party or third-party
 ```yaml
 spec:
   dependencies:
-    - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-    - https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+      version: "v1alpha1"
+    - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+      version: "v1alpha1"
 ```
 
 The SDK package does not need to vendor every dependency extension file. The SDK package is the source of the direct extension definition used for SDK extraction; that definition's dependency identifiers are then resolved by validators, generators, or adapters from their configured package, cache, registry, or development sources.
@@ -219,6 +222,7 @@ metadata:
 
 extension:
   id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+  version: "v1alpha1"
 
 go:
   importPath: github.com/runtimeconditions/spec/examples/sdks/aws-sdk-go-v2/service/s3
@@ -290,7 +294,8 @@ Expected generated profile fragment:
 
 ```yaml
 extensions:
-  - https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+  - id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+    version: "v1alpha1"
 
 conditions:
   - name: s3-object-store
@@ -324,7 +329,7 @@ Before publishing Runtime Conditions metadata, SDK authors SHOULD verify:
 - The package includes `runtimeconditions.extension.yaml` next to the manifest.
 - The mapping references the selected service mapping and exact semantic digest.
 - Service operations come from a pinned authoritative model or one reviewed `service-operations-inventory.yaml`, never from duplicated per-language tables.
-- The extension identifier in the manifest matches `metadata.id` in the extension file.
+- The manifest's extension `id` and `version` exactly match `metadata.id` and `metadata.version` in the extension file.
 - The extension declares all vocabulary dependencies.
 - Any manifest `configuration` shape is defined by a declared extension dependency.
 - The manifest maps real SDK symbols, not internal implementation details that users never call.

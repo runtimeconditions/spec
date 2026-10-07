@@ -134,6 +134,7 @@ kind: RuntimeConditionsExtensionDefinition
 
 metadata:
   id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  version: "v1alpha1"
 
 spec:
   kinds:
@@ -168,10 +169,12 @@ kind: RuntimeConditionsExtensionDefinition
 
 metadata:
   id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+  version: "v1alpha1"
 
 spec:
   dependencies:
-    - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+      version: "v1alpha1"
 
   conditionFields:
     - name: configuration
@@ -360,8 +363,10 @@ The generated profile lists both extensions because both packages directly contr
 
 ```yaml
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-  - https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+  - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    version: "v1alpha1"
+  - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+    version: "v1alpha1"
 ```
 
 If a workload imports only `common-integrations/go`, the profile lists only `common-integrations`. If it imports `env-configuration/go` but does not apply an env option to a Condition, the profile does not list `env-configuration`.
@@ -379,7 +384,7 @@ vocabulary.
 For first-party tooling support:
 
 - `runtimeconditions.bindings.yaml` must use `kind: RuntimeConditionsBinding`.
-- `metadata.extension` must match the extension definition `metadata.id`.
+- `metadata.extension.id` and `metadata.extension.version` must exactly match the definition's `metadata.id` and `metadata.version`.
 - The package should include `runtimeconditions.extension.yaml` next to the binding manifest, unless the extension definition is intentionally vendored elsewhere in the same package artifact or supplied by a local development override.
 - `metadata.extensionDefinition` is a vendored or local development override; when present, it must resolve to the extension definition file.
 - `metadata.language` must identify the language section used by the binding.
@@ -393,7 +398,9 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsBinding
 
 metadata:
-  extension: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  extension:
+    id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    version: "v1alpha1"
   language: go
 
 go:
@@ -418,7 +425,9 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsBinding
 
 metadata:
-  extension: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+  extension:
+    id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+    version: "v1alpha1"
   language: go
 
 go:
@@ -479,7 +488,7 @@ go run . validate-extension -root ../extensions/env-configuration -language java
 
 The validator loads the target extension definition, resolves dependency extension definitions from the provided package or development roots, checks the binding manifest against the resolved vocabulary, and checks that the declarative code package contains the language symbols, constants, and argument positions named by the binding manifest.
 
-When validating a single extension directory in this repository, sibling extension directories are included as a local development convenience. Published packages should not depend on repository sibling layout; they should package their own extension definition and declare exact dependency identifiers.
+When validating a single extension directory in this repository, sibling extension directories are included as a local development convenience. Published packages should not depend on repository sibling layout; they should package their own extension definition and declare exact dependency (`id`, `version`) pairs.
 
 ---
 

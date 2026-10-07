@@ -199,7 +199,7 @@ The current NATS prototype uses a semantic bridge to translate that service oper
 
 ```yaml
 extension:
-  id: https://runtimeconditions.io/extensions/nats-service/0.1.0/runtimeconditions.extension.yaml
+  id: https://runtimeconditions.io/extensions/nats/service/0.1.0/runtimeconditions.extension.yaml
   version: 0.1.0
   conditionKind: nats
   interfaceType: service

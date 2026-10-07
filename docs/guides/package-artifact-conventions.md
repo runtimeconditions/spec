@@ -16,11 +16,11 @@ First-party tooling recognizes three package-adjacent files:
 
 | File | Artifact | Purpose |
 | ---- | -------- | ------- |
-| `runtimeconditions.extension.yaml` | Extension definition | Contains a `RuntimeConditionsExtensionDefinition` document. Its allowed fields are defined by the core draft: `apiVersion`, `kind`, `metadata.id`, and `spec`. |
+| `runtimeconditions.extension.yaml` | Extension definition | Contains a `RuntimeConditionsExtensionDefinition` document. The core draft defines `apiVersion`, `kind`, `metadata.id`, `metadata.version`, and `spec`. |
 | `runtimeconditions.bindings.yaml` | Binding manifest | Maps declarative helper APIs to extension-owned Condition vocabulary. This is a first-party tooling convention, not profile vocabulary. |
 | `runtimeconditions.package.yaml` | Package manifest | Maps SDK or production library APIs to extension-owned Condition vocabulary. This is a first-party tooling convention, not profile vocabulary. |
 
-The core draft defines the extension definition document shape. This guide only names where a package should place that document for first-party generator discovery.
+The core draft defines the extension definition document shape. Its required `metadata.id` and `metadata.version` strings identify an immutable release together. IDs SHOULD use a resolver-supported format, such as a file URI or OCI archive reference, but URI syntax is not required. A package-local artifact can resolve an otherwise opaque ID. This guide names where a package should place the definition for first-party generator discovery.
 
 An imported declarative extension package SHOULD include a binding manifest in the package directory that exposes its declaration APIs.
 
@@ -82,7 +82,8 @@ metadata:
   language: <language id>
 
 extension:
-  id: <extension id URI>
+  id: <extension identifier>
+  version: <exact extension version>
   definition: <optional vendored or local override path>
 
 <language-specific section>: {}
@@ -96,12 +97,13 @@ Required fields:
 | `kind` | YES | Must be `RuntimeConditionsPackage` |
 | `metadata.package` | YES | Language package identity |
 | `metadata.language` | YES | Language id such as `go`, `java`, `python`, `javascript`, or `typescript` |
-| `extension.id` | YES | Exact extension identifier used by generated profiles |
+| `extension.id` | YES | Non-empty extension identifier used by generated profiles |
+| `extension.version` | YES | Non-empty exact extension release used by generated profiles |
 | `extension.definition` | NO | Package-manifest override path for vendored or local development layouts |
 
 The package MAY include one or more language-specific sections. A generator ignores sections for languages it does not support.
 
-When `extension.definition` is omitted, first-party tooling loads `runtimeconditions.extension.yaml` from the same package artifact as the manifest. When it is present, the path is resolved relative to `runtimeconditions.package.yaml` and must point to an extension definition whose `metadata.id` exactly matches `extension.id`.
+When `extension.definition` is omitted, first-party tooling loads `runtimeconditions.extension.yaml` from the same package artifact as the manifest. When it is present, the path is resolved relative to `runtimeconditions.package.yaml`. In both cases, the definition's `metadata.id` and `metadata.version` must exactly match `extension.id` and `extension.version`. The definition path is a locator, not an identity field.
 
 ---
 
@@ -114,7 +116,9 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsBinding
 
 metadata:
-  extension: <extension id URI>
+  extension:
+    id: <extension identifier>
+    version: <exact extension version>
   extensionDefinition: <optional vendored or local override path>
   language: <language id>
 
@@ -127,13 +131,15 @@ Required fields:
 | ----- | -------- | ----------- |
 | `apiVersion` | YES | Runtime Conditions API version |
 | `kind` | YES | Must be `RuntimeConditionsBinding` |
-| `metadata.extension` | YES | Exact extension identifier used by generated profiles |
+| `metadata.extension` | YES | Exact extension reference object containing `id` and `version` |
+| `metadata.extension.id` | YES | Non-empty extension identifier used by generated profiles |
+| `metadata.extension.version` | YES | Non-empty exact extension release used by generated profiles |
 | `metadata.extensionDefinition` | NO | Binding-manifest override path for vendored or local development layouts |
 | `metadata.language` | YES | Language id; must match the generator language |
 
 The binding manifest maps declarative helper functions to extension-owned vocabulary. It does not define vocabulary itself.
 
-When `metadata.extensionDefinition` is omitted, first-party tooling loads `runtimeconditions.extension.yaml` from the same package artifact as the manifest. When it is present, the path is resolved relative to `runtimeconditions.bindings.yaml` and must point to an extension definition whose `metadata.id` exactly matches `metadata.extension`.
+When `metadata.extensionDefinition` is omitted, first-party tooling loads `runtimeconditions.extension.yaml` from the same package artifact as the manifest. When it is present, the path is resolved relative to `runtimeconditions.bindings.yaml`. In both cases, the definition's `metadata.id` and `metadata.version` must exactly match `metadata.extension.id` and `metadata.extension.version`.
 
 Override paths are manifest-specific: `RuntimeConditionsPackage` uses `extension.definition`, and `RuntimeConditionsBinding` uses `metadata.extensionDefinition`. Published packages should prefer package-local `runtimeconditions.extension.yaml`; override paths are mainly for vendored layouts, local development, and fixtures.
 
@@ -475,16 +481,19 @@ This convention does not require a `package.json` property.
 
 # 8. Extension Definition Relationship
 
-The manifest's extension identifier must match the extension definition it resolves:
+The manifest's complete extension reference must match the extension definition it resolves:
 
-- `RuntimeConditionsPackage` compares `extension.id` with the extension definition `metadata.id`.
-- `RuntimeConditionsBinding` compares `metadata.extension` with the extension definition `metadata.id`.
+- `RuntimeConditionsPackage` compares `extension.id` and `extension.version` with the definition's `metadata.id` and `metadata.version`.
+- `RuntimeConditionsBinding` compares `metadata.extension.id` and `metadata.extension.version` with the definition's `metadata.id` and `metadata.version`.
+
+A matching ID with a different version is invalid. Neither manifest may infer the extension version from a URL, the language package version, or the document `apiVersion`.
 
 Given:
 
 ```yaml
 extension:
   id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+  version: "v1alpha1"
 ```
 
 The resolved `runtimeconditions.extension.yaml`, or the file reached through an allowed override path, should contain:
@@ -492,6 +501,7 @@ The resolved `runtimeconditions.extension.yaml`, or the file reached through an 
 ```yaml
 metadata:
   id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+  version: "v1alpha1"
 ```
 
 The extension definition owns vocabulary and dependencies:
@@ -543,8 +553,8 @@ Manifest compatibility is governed by `apiVersion`.
 Generators SHOULD ignore unknown manifest fields when they can still interpret the required fields safely. Generators MUST fail with diagnostics when:
 
 - `kind` is unsupported
-- `extension.id` is missing
-- `metadata.extension` is missing
+- `extension.id` or `extension.version` is missing
+- `metadata.extension.id` or `metadata.extension.version` is missing
 - The resolved extension definition cannot be loaded
 - The language section required for the current generator is missing
 - A declaration cannot be interpreted safely

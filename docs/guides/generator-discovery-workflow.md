@@ -169,8 +169,10 @@ produces a profile that includes the directly used declaration package extension
 
 ```yaml
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-  - https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+  - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    version: "v1alpha1"
+  - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+    version: "v1alpha1"
 
 conditions:
   - name: todos-api
@@ -218,29 +220,32 @@ The generator still emits only the Runtime Conditions Profile. `ApplicationRelea
 
 # 5. Extension Dependency Resolution
 
-Package manifests identify the extension used by generated Conditions with `extension.id`:
+Package manifests identify the extension release used by generated Conditions with `extension.id` and `extension.version`:
 
 ```yaml
 extension:
   id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
+  version: "v1alpha1"
 ```
 
-Binding manifests use `metadata.extension` for the same purpose.
+Binding manifests use an object at `metadata.extension` containing the same required `id` and `version` fields. Both fields must exactly match the loaded definition's metadata before any mapping is trusted.
 
 The extension definition declares its dependencies:
 
 ```yaml
 spec:
   dependencies:
-    - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-    - https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+      version: "v1alpha1"
+    - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+      version: "v1alpha1"
 ```
 
 Generators and validators should resolve the direct extension definition from the resolved code package whenever possible. They then resolve dependency extension identifiers from configured sources such as package-local artifacts, local caches, organization registries, public registries, or development roots.
 
 Extensions are standalone artifacts. A workload or adapter can use an extension without using the SDK or production library that originally motivated it. Packages that participate in generation must reference an extension definition from their manifest; they do not define vocabulary inside the manifest itself.
 
-Packages do not need to physically include every transitive dependency extension file. Dependencies are resolved from exact extension identifiers after the package-owned extension definition is loaded.
+Packages do not need to physically include every transitive dependency extension file. Dependencies are resolved from exact (`id`, `version`) pairs after the package-owned extension definition is loaded. IDs SHOULD use a resolver-supported format, but local catalogs and explicit mappings may resolve non-URI IDs. A resolver must not infer a version from an ID or substitute a different release.
 
 ---
 

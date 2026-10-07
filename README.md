@@ -24,6 +24,8 @@ platforms decide how to fulfill them.
 - `schema/runtimeconditions.profile.schema.yaml` - the current core profile
   structure, documented in `schema/README.md` and published as a versioned
   GitHub Release asset.
+- `schema/runtimeconditions.extension-metadata.schema.yaml` - the required
+  extension `id` and `version` metadata contract, released with the profile schema.
 - `docs/runtime-conditions-whitepaper-draft.md` - whitepaper-oriented narrative.
 - `docs/guides/` - implementation guidance for extensions, package artifacts,
   SDK metadata, and generator discovery.
@@ -31,6 +33,12 @@ platforms decide how to fulfill them.
   notes.
 - `examples/` - incomplete draft examples used by the docs. These are kept here
   until they are ready to become a supported package surface.
+
+Extension releases are identified by exact (`id`, `version`) pairs. Both fields
+are required non-empty strings in definition metadata and in profile and dependency
+references. IDs SHOULD use a resolver-supported format, such as a file URI or OCI
+archive reference, but URI syntax is not required. See specification Sections 5
+and 6 and [`schema/README.md`](schema/README.md) for validation and migration rules.
 
 ## Related Repositories
 
