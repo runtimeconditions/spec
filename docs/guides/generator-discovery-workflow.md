@@ -169,10 +169,8 @@ produces a profile that includes the directly used declaration package extension
 
 ```yaml
 extensions:
-  - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
-  - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
+  - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  - https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
 
 conditions:
   - name: todos-api

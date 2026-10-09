@@ -80,10 +80,8 @@ workload:
   version: v1.2.3
 
 extensions:
-  - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
-  - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
+  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
+  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
 
 conditions:
   - name: primary-db
@@ -129,7 +127,7 @@ conditions:
 | `kind` | string | YES | Document kind |
 | `metadata` | object | YES | Profile metadata |
 | `workload` | object | YES | Workload identity |
-| `extensions` | array | YES | Exact `id` and `version` extension references required by the profile |
+| `extensions` | array | YES | Extension identifier strings required by the profile |
 | `conditions` | array | YES | Runtime Conditions declared by the workload |
 
 `apiVersion` MUST be:
@@ -226,7 +224,7 @@ Each Condition represents one external runtime dependency requirement.
 | `name` | string | NO | Unique Condition name within the profile |
 | `optional` | boolean | NO | Whether the Condition is optional. Defaults to `false` |
 | `kind` | string | YES | Extension-defined integration classification |
-| `extension` | object | NO | Exact `id` and `version` reference selecting the extension defining this Condition's `kind`, when ambiguous |
+| `extension` | string | NO | Extension identifier selecting the extension defining this Condition's `kind`, when ambiguous |
 | `interface` | object | YES | Workload-facing interface requirement |
 
 Condition shape:
@@ -246,7 +244,7 @@ conditions:
 
 `conditions[].kind` MUST be a non-empty string and MUST be defined by at least one resolved extension.
 
-`conditions[].extension`, when present, MUST be an extension reference containing `id` and `version` as defined in Section 5.2. The pair MUST exactly equal one reference in the profile's `extensions` array, and that extension MUST define `conditions[].kind`.
+`conditions[].extension`, when present, MUST be a non-empty string exactly equal to one item in the profile's `extensions` array, and that extension MUST define `conditions[].kind`.
 
 When more than one resolved extension defines `conditions[].kind`, `conditions[].extension` selects which definition this Condition resolves against. When `conditions[].extension` is absent, the Condition resolves against the first matching definition in extension resolution order.
 
@@ -274,57 +272,39 @@ First-party extensions are extensions. They are not core vocabulary and are not 
 
 Implementations MAY bundle support for first-party extensions, but generated profiles MUST still declare the vocabulary they use.
 
-## 5.1 Extension Identifiers
+## 5.1 Extension Identifiers and Versions
 
-An extension release is identified by the pair (`id`, `version`). Both fields MUST be non-empty strings.
+An extension identifier MUST be a non-empty string. It SHOULD be resolvable by tooling, using a form such as an HTTPS URI, a file URI, or an OCI reference. It SHOULD identify immutable content, but immutability is not required.
 
-`id` identifies the extension. IDs SHOULD use a format understood by a resolver, such as an HTTPS URI, a file URI, or an OCI archive reference. This encourages portable discovery while allowing an extension to be resolved independently of first-party tooling. An ID is not required to be a URI or to use any particular scheme, host, path layout, or delimiter.
+An extension reference MAY append a version to its identifier in the form `<identifier>:<version>`. The version MAY use any non-empty string form, including `v1alpha`, `v1.1.1`, or a SHA digest. The version suffix is optional. Structural validation MUST treat each reference as a string and MUST NOT require URI syntax or assign meaning to a suffix.
 
-Resolvers MAY support only some ID formats. Structural validators MUST NOT require URI syntax. Resolution MAY fail when no configured source can resolve a reference, and the resolver MUST report that unsupported or unavailable reference. Package-local definitions, configured catalogs, caches, and explicit mappings MAY resolve IDs that are not directly retrievable locators.
+Extension reference strings are case-sensitive and MUST NOT be trimmed, case-folded, or URI-normalized for equality. Tooling MAY resolve an identifier through its URI, file, OCI, package, or catalog mechanisms.
 
 Examples:
 
-- `https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml`
-- `https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml`
-- `https://extensions.example.com/runtimeconditions/aws-object-store/2026.06.0/runtimeconditions.extension.yaml`
+- `https://runtimeconditions.io/extensions/common-integrations:v1alpha1`
+- `https://runtimeconditions.io/extensions/env-configuration`
 - `file:///opt/runtimeconditions/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml`
-- `oci://ghcr.io/example/runtimeconditions/extensions/common-integrations`
+- `oci://ghcr.io/example/runtimeconditions/extensions/common-integrations:sha256-abc123`
 - `example.common-integrations` (resolved through a configured catalog or mapping)
-
-`version` identifies one exact semantic release of the extension. It MUST NOT be inferred from `id` or substituted with the Runtime Conditions document `apiVersion`, a binding package version, or a schema artifact version. Semantic Versioning is not required; labels such as `v1alpha1` are valid. Resolvers MUST compare the supplied version exactly, without interpreting it as a version range or selecting an implicit latest release.
-
-Both strings are case-sensitive. Identity comparisons MUST use the original strings without trimming, case folding, URI normalization, or concatenating them into a derived identifier. Two references with the same ID and different versions identify distinct releases.
-
-A published (`id`, `version`) pair MUST be immutable: resolving it at a later time MUST NOT produce different vocabulary or validation semantics. A semantic change requires a new version or a different ID. An ID MAY contain release information, but `version` remains required and MUST identify the same release.
 
 ## 5.2 Extension Declarations
 
 ```yaml
 extensions:
-  - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
-  - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
+  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
+  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
 ```
 
-Each `extensions` item MUST be an object with exactly these fields:
-
-| Field | Type | Required | Description |
-| ----- | ---- | -------- | ----------- |
-| `id` | string | YES | Extension identifier; MUST be non-empty |
-| `version` | string | YES | Exact extension release; MUST be non-empty |
-
-The `extensions` array MUST NOT contain duplicate (`id`, `version`) pairs. Different versions of one ID are distinct references and remain subject to the vocabulary conflict rules.
-
-A reference MUST NOT be represented as a bare string, including a concatenated URI/version string. Implementations MUST NOT silently convert legacy string references to the object form.
+Each `extensions` item MUST be a non-empty string. The array MUST NOT contain duplicate strings. An item MAY be a bare identifier or an identifier with a version suffix.
 
 Declared extensions MAY depend on other extensions.
 
 Declared extensions and transitive dependencies form the resolved extension set.
 
-When a reference resolves to an extension definition, both `metadata.id` and `metadata.version` MUST exactly equal the requested fields. Finding a definition with the same ID and a different version does not satisfy the reference. Resolution, caching, dependency deduplication, and cycle detection MUST distinguish the full pair.
+Resolution, caching, dependency deduplication, and cycle detection MUST use the exact extension reference string. A resolver MAY use optional extension metadata to verify a resolved definition.
 
-Identity and retrieval location are separate. A resolver MAY use the ID as a locator when its format supports that, or obtain a location from its configured sources. Any retrieved artifact MUST pass the same exact-pair check.
+An identifier SHOULD be usable as a retrieval location when its format supports that. Tooling MAY also resolve it through configured catalogs, caches, package-local definitions, or explicit mappings. Resolution MUST report unsupported or unavailable identifiers.
 
 Dependency resolution MUST be deterministic and MUST NOT depend on declaration order.
 
@@ -384,22 +364,20 @@ spec:
 | `metadata` | object | YES | Extension identity |
 | `spec` | object | YES | Extension vocabulary, dependencies, and validation schemas |
 
-Extension metadata has these required identity fields:
+Extension metadata has these identity fields:
 
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
 | `id` | string | YES | Non-empty extension identifier, as defined in Section 5.1 |
-| `version` | string | YES | Non-empty exact semantic release, as defined in Section 5.1 |
+| `version` | string | NO | Optional non-empty extension version |
 
-`metadata.uri` is not an accepted alias for `metadata.id` and MUST NOT appear in extension metadata. Implementations MUST NOT derive an ID by appending `version` to another metadata field.
-
-Artifact and tooling conventions MAY define additional non-identity metadata, such as a semantic digest. These fields MUST NOT replace or change the (`id`, `version`) identity. The [extension metadata schema](../schema/runtimeconditions.extension-metadata.schema.yaml) validates this metadata contract; vocabulary and digest validation are separate responsibilities.
+`metadata.id` MUST be a non-empty string. `metadata.version`, when present, MUST be a non-empty string.
 
 ## 6.3 Extension Spec Fields
 
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
-| `dependencies` | array | NO | Exact `id` and `version` references required by this extension |
+| `dependencies` | array | NO | Extension reference strings required by this extension |
 | `kinds` | array | NO | Condition kinds defined by this extension |
 | `interfaceTypes` | array | NO | Interface types defined by this extension |
 | `conditionFields` | array | NO | Condition-level fields defined by this extension |
@@ -409,7 +387,7 @@ Artifact and tooling conventions MAY define additional non-identity metadata, su
 
 An extension MUST define at least one vocabulary item or validation schema.
 
-Each `dependencies` item MUST use the same reference object as `extensions` in Section 5.2. Both `id` and `version` are required, no additional reference fields are permitted, and duplicate pairs are invalid. Dependencies MUST NOT use bare strings, inferred versions, or version ranges.
+Each `dependencies` item MUST be a non-empty string using the same format as Profile `extensions` entries. Duplicate strings are invalid.
 
 ## 6.4 Vocabulary Definition Fields
 
@@ -643,8 +621,8 @@ A profile is structurally invalid if:
 - `workload.uri` is missing or is not a non-empty string
 - `workload.version` is present and is not a non-empty string
 - `extensions` is missing or is not an array
-- An `extensions` item is not an object containing exactly non-empty string `id` and `version` fields
-- The `extensions` array contains a duplicate (`id`, `version`) pair
+- An `extensions` item is not a non-empty string
+- The `extensions` array contains a duplicate string
 - `conditions` is non-empty and `extensions` is empty
 - `conditions` is missing or is not an array
 - Any required field is present with `null`
@@ -658,7 +636,7 @@ A Condition is structurally invalid if:
 - `interface.type` is missing or is not a non-empty string
 - `name` is present and is not a non-empty string
 - `optional` is present and is not a boolean
-- `extension` is present and is not a valid `id` and `version` reference object
+- `extension` is present and is not a non-empty string
 
 Condition names, when present, MUST be unique within the profile.
 
@@ -672,7 +650,7 @@ A profile is invalid if:
 - An extension-defined interface field is not defined by exactly one resolved extension for its scope
 - An extension-defined field value is not defined by exactly one resolved extension for its scope
 - Any resolved extension dependency is missing
-- A resolved definition's `metadata.id` or `metadata.version` differs from the requested reference
+- A resolved definition does not match the requested reference under the configured resolution rules
 - Resolved extensions contain a dependency cycle
 - Resolved extensions contain a vocabulary definition conflict
 - Any applicable extension JSON Schema validation fails
@@ -731,8 +709,7 @@ A conforming profile MUST:
 
 A conforming extension MUST:
 
-- Declare non-empty `metadata.id` and `metadata.version` strings
-- Preserve immutable semantics for every published (`id`, `version`) pair
+- Declare a non-empty `metadata.id` string
 - Provide a valid extension definition artifact
 - Apply the adapter-actionable minimum to its vocabulary and validation semantics
 - Avoid mirroring API, SDK, library, protocol, configuration, or source-model detail that does not enable a materially different portable Adapter decision
@@ -807,8 +784,7 @@ workload:
   uri: https://github.com/example-org/example-service
 
 extensions:
-  - id: example.unresolved
-    version: "1"
+  - example.unresolved:1
 
 conditions:
   - name: primary-db
@@ -834,8 +810,7 @@ workload:
   version: v1.2.3
 
 extensions:
-  - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
+  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
 
 conditions:
   - name: primary-db
@@ -869,10 +844,8 @@ workload:
   version: v1.2.3
 
 extensions:
-  - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
-  - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
+  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
+  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
 
 conditions:
   - name: primary-db
@@ -942,17 +915,13 @@ workload:
   version: v1.2.3
 
 extensions:
-  - id: https://redis-vendor.example.com/extensions/redis/0.1.0/runtimeconditions.extension.yaml
-    version: "0.1.0"
-  - id: https://memcached-vendor.example.com/extensions/memcached/0.1.0/runtimeconditions.extension.yaml
-    version: "0.1.0"
+  - https://redis-vendor.example.com/extensions/redis:0.1.0
+  - https://memcached-vendor.example.com/extensions/memcached:0.1.0
 
 conditions:
   - name: primary-cache
     kind: cache
-    extension:
-      id: https://redis-vendor.example.com/extensions/redis/0.1.0/runtimeconditions.extension.yaml
-      version: "0.1.0"
+    extension: https://redis-vendor.example.com/extensions/redis:0.1.0
     interface:
       type: redis_protocol
 

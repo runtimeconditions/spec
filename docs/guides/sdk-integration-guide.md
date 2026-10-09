@@ -294,8 +294,7 @@ Expected generated profile fragment:
 
 ```yaml
 extensions:
-  - id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
+  - https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
 
 conditions:
   - name: s3-object-store

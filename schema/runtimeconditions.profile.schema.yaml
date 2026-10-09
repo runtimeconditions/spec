@@ -1,11 +1,11 @@
 $schema: https://json-schema.org/draft/2020-12/schema
-$id: https://runtimeconditions.io/schemas/profile/0.3.0/runtimeconditions.profile.schema.yaml
+$id: https://runtimeconditions.io/schemas/profile/0.4.0/runtimeconditions.profile.schema.yaml
 title: Runtime Conditions Profile core schema
 description: >-
-  Core structural rules for Runtime Conditions Profiles, version 0.3.0.
+  Core structural rules for Runtime Conditions Profiles, version 0.4.0.
   Extension-owned vocabulary and applicable extension schemas are validated
   against the resolved extension closure after this schema succeeds.
-x-runtimeconditions-version: '0.3.0'
+x-runtimeconditions-version: '0.4.0'
 type: object
 additionalProperties: false
 required:
@@ -28,7 +28,7 @@ properties:
     type: array
     uniqueItems: true
     items:
-      $ref: '#/$defs/extensionReference'
+      $ref: '#/$defs/nonEmptyString'
   conditions:
     type: array
     items:
@@ -48,19 +48,6 @@ $defs:
   nonEmptyString:
     type: string
     minLength: 1
-  extensionReference:
-    description: >-
-      An exact extension release. IDs SHOULD use a resolver-supported format,
-      but URI syntax is not required. Resolution verifies both identity fields,
-      availability, and the transitive dependency closure.
-    type: object
-    additionalProperties: false
-    required: [id, version]
-    properties:
-      id:
-        $ref: '#/$defs/nonEmptyString'
-      version:
-        $ref: '#/$defs/nonEmptyString'
   metadata:
     type: object
     additionalProperties: false
@@ -94,7 +81,7 @@ $defs:
       kind:
         $ref: '#/$defs/nonEmptyString'
       extension:
-        $ref: '#/$defs/extensionReference'
+        $ref: '#/$defs/nonEmptyString'
       interface:
         $ref: '#/$defs/interface'
     additionalProperties: true

@@ -19,8 +19,7 @@ This extension is treated as a third-party extension. It is not first-party Runt
 
 ```yaml
 extensions:
-  - id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
-    version: "v1alpha1"
+  - https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
 ```
 
 This extension defines:
@@ -86,7 +85,6 @@ metadata:
 extension:
   id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
   version: "v1alpha1"
-  definition: ../../../../extensions/aws-object-store/aws-object-store-v1alpha1.yaml
 
 go:
   importPath: github.com/runtimeconditions/spec/examples/sdks/aws-sdk-go-v2/service/s3
