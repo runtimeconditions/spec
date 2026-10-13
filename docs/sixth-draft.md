@@ -121,6 +121,17 @@ conditions:
 
 ## 3.2 Top-Level Fields
 
+For readability and consistent diffs, first-party tools MUST emit the top-level fields of a Runtime Conditions Profile in this order:
+
+1. `apiVersion`
+2. `kind`
+3. `metadata`
+4. `workload`
+5. `extensions`
+6. `conditions`
+
+This serialization order does not change the meaning of a profile. Consumers MUST NOT depend on mapping key order when reading a profile.
+
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
 | `apiVersion` | string | YES | Runtime Conditions Profile API version |
