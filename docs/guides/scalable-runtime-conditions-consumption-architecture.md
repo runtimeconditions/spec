@@ -74,6 +74,27 @@ The representation of that support policy does not need to be standardized by Ru
 
 The architectural requirement is explicit coverage: valid demand must not silently disappear because a platform does not understand or support part of a Condition.
 
+### 3.4.1 Candidate handling of optional demand
+
+The core Profile already distinguishes required and optional Conditions. A useful portable interpretation is that optionality affects whether lack of platform support prevents the overall target from proceeding, but it does not weaken Runtime Conditions validation or permit unsupported demand to disappear silently.
+
+| Condition outcome | Candidate platform behavior |
+| --- | --- |
+| Invalid Condition, required or optional | Validation failure before support evaluation |
+| Valid required Condition, supported | Fulfill normally |
+| Valid required Condition, unsupported | Report unsupported; do not claim complete fulfillment |
+| Valid optional Condition, supported | Fulfill normally while preserving its optional nature downstream when relevant |
+| Valid optional Condition, unsupported | Report unsupported explicitly; the target may continue without that Condition |
+
+This interpretation preserves two independent questions:
+
+1. Is the declared demand valid Runtime Conditions?
+2. Can this target platform fulfill that valid demand?
+
+It also avoids treating `optional: true` as permission for an Adapter to ignore unknown or malformed semantics. Optionality only becomes relevant after validation and during target support / fulfillment evaluation.
+
+Whether a common cross-platform result model should distinguish unsupported, denied, and fulfillment-failed optional Conditions remains an open question.
+
 ## 3.5 Concrete resource identity enters at binding and fulfillment
 
 Portable demand should normally stop before target-specific resource identity. Once a platform has accepted a capability request, it can bind that request to the concrete environment.
@@ -124,7 +145,7 @@ The implementation work resolved several boundary questions, but it also makes t
 - Who owns Profile composition and lifecycle when demand comes from multiple sources?
 - What is the canonical artifact passed from generation/composition into validation and then to platform consumers?
 - How should a consumer know that the Profile it receives has completed the expected resolution and validation steps when those steps happen in another process or system?
-- How should optional Conditions affect capability matching and partial fulfillment?
+- Should the candidate optional-Condition behavior in Section 3.4.1 become part of the portable Runtime Conditions contract, and how should optional outcomes distinguish unsupported, denied, and fulfillment-failed states?
 - Would a small common result model for invalid, unsupported, denied, and fulfillment-failed outcomes improve interoperability?
 - How should Profile and extension evolution interact with long-lived platform support policy?
 - Which parts of this lifecycle belong in local development, CI, deployment, or a continuously running platform control plane?

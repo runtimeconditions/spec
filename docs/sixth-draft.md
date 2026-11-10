@@ -253,6 +253,14 @@ conditions:
 
 `conditions[].optional`, when omitted, MUST be interpreted as `false`.
 
+The `optional` field does not weaken validation. An optional Condition MUST satisfy the same structural, extension-resolution, vocabulary, and semantic validation requirements as a required Condition.
+
+When `optional` is `false`, a platform or Adapter that claims successful fulfillment of the Profile MUST fulfill the Condition or report that the Profile is not fully fulfillable for that target.
+
+When `optional` is `true`, the workload declares that the target MAY proceed without fulfilling that Condition. A platform or Adapter MAY therefore continue when a valid optional Condition is unsupported, but it MUST NOT report the Condition as fulfilled and SHOULD expose the unsupported or unfulfilled outcome explicitly.
+
+This field does not define how a platform represents support results, authorization denials, or fulfillment failures. Those result models and policies remain platform concerns unless a future Runtime Conditions specification defines a common contract.
+
 `conditions[].kind` MUST be a non-empty string and MUST be defined by at least one resolved extension.
 
 `conditions[].extension`, when present, MUST be a non-empty string exactly equal to one item in the profile's `extensions` array, and that extension MUST define `conditions[].kind`.
