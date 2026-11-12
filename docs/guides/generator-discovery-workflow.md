@@ -130,8 +130,8 @@ The current request logger demo imports explicit first-party declaration package
 
 ```go
 import (
-	common "github.com/runtimeconditions/extensions/common-integrations/go"
-	env "github.com/runtimeconditions/extensions/env-configuration/go"
+	common "runtimeconditions.io/x/rc/common"
+	env "runtimeconditions.io/x/rc/env"
 )
 ```
 
@@ -169,8 +169,8 @@ produces a profile that includes the directly used declaration package extension
 
 ```yaml
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-  - https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+  - https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  - https://runtimeconditions.io/extensions/rc/env-configuration/v1alpha1/runtimeconditions.extension.yaml
 
 conditions:
   - name: todos-api
@@ -233,9 +233,9 @@ The extension definition declares its dependencies:
 ```yaml
 spec:
   dependencies:
-    - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
       version: "v1alpha1"
-    - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/rc/env-configuration/v1alpha1/runtimeconditions.extension.yaml
       version: "v1alpha1"
 ```
 

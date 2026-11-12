@@ -452,8 +452,8 @@ request-cache
 The generated profile must include these extension IDs:
 
 ```text
-https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+https://runtimeconditions.io/extensions/rc/env-configuration/v1alpha1/runtimeconditions.extension.yaml
 ```
 
 ---
@@ -508,8 +508,8 @@ A new language profiler reaches this parity target when all of the following are
 Do not start by designing a new extension vocabulary. Use the existing first-party extensions:
 
 ```text
-extensions/common-integrations/
-extensions/env-configuration/
+extensions/catalog/rc/common-integrations/
+extensions/catalog/rc/env-configuration/
 ```
 
 Do not invent new manifest filenames. Use:

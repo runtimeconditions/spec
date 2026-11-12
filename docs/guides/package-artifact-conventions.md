@@ -242,7 +242,7 @@ Package-level options let additive extension packages contribute fields to decla
 
 ```yaml
 go:
-  importPath: github.com/runtimeconditions/extensions/env-configuration/go
+  importPath: runtimeconditions.io/x/rc/env
   package: envconfiguration
 
   options:

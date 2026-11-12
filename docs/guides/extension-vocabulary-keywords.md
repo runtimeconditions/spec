@@ -231,7 +231,7 @@ Use `dependencies` when an extension references vocabulary it does not own.
 ```yaml
 spec:
   dependencies:
-    - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
       version: "v1alpha1"
 
   conditionFields:
