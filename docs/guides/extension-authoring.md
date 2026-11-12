@@ -133,7 +133,7 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsExtensionDefinition
 
 metadata:
-  id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  id: https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
   version: "v1alpha1"
 
 spec:
@@ -168,12 +168,12 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsExtensionDefinition
 
 metadata:
-  id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+  id: https://runtimeconditions.io/extensions/rc/env-configuration/v1alpha1/runtimeconditions.extension.yaml
   version: "v1alpha1"
 
 spec:
   dependencies:
-    - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
       version: "v1alpha1"
 
   conditionFields:
@@ -324,7 +324,7 @@ An additive extension package exports only its own options. It may import a base
 ```go
 package envconfiguration
 
-import common "github.com/runtimeconditions/extensions/common-integrations/go"
+import common "runtimeconditions.io/x/rc/common"
 
 type ConditionOption interface {
 	common.APIOption
@@ -349,8 +349,8 @@ Application code imports both packages when it uses both extensions:
 
 ```go
 import (
-	common "github.com/runtimeconditions/extensions/common-integrations/go"
-	env "github.com/runtimeconditions/extensions/env-configuration/go"
+	common "runtimeconditions.io/x/rc/common"
+	env "runtimeconditions.io/x/rc/env"
 )
 
 var _ = common.Cache("request-cache",
@@ -363,8 +363,8 @@ The generated profile lists both extensions because both packages directly contr
 
 ```yaml
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-  - https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+  - https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  - https://runtimeconditions.io/extensions/rc/env-configuration/v1alpha1/runtimeconditions.extension.yaml
 ```
 
 If a workload imports only `common-integrations/go`, the profile lists only `common-integrations`. If it imports `env-configuration/go` but does not apply an env option to a Condition, the profile does not list `env-configuration`.
@@ -397,12 +397,12 @@ kind: RuntimeConditionsBinding
 
 metadata:
   extension:
-    id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    id: https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
     version: "v1alpha1"
   language: go
 
 go:
-  importPath: github.com/runtimeconditions/extensions/common-integrations/go
+  importPath: runtimeconditions.io/x/rc/common
   package: commonintegrations
 
   declarations:
@@ -424,12 +424,12 @@ kind: RuntimeConditionsBinding
 
 metadata:
   extension:
-    id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+    id: https://runtimeconditions.io/extensions/rc/env-configuration/v1alpha1/runtimeconditions.extension.yaml
     version: "v1alpha1"
   language: go
 
 go:
-  importPath: github.com/runtimeconditions/extensions/env-configuration/go
+  importPath: runtimeconditions.io/x/rc/env
   package: envconfiguration
 
   options:

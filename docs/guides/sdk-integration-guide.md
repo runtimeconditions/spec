@@ -196,9 +196,9 @@ The SDK-owned extension definition should declare any first-party or third-party
 ```yaml
 spec:
   dependencies:
-    - id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
       version: "v1alpha1"
-    - id: https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+    - id: https://runtimeconditions.io/extensions/rc/env-configuration/v1alpha1/runtimeconditions.extension.yaml
       version: "v1alpha1"
 ```
 

@@ -8,8 +8,8 @@ This document defines the core Runtime Conditions Profile format.
 
 First-party extension drafts define common integration vocabulary separately:
 
-- `https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml`
-- `https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml`
+- `https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml`
+- `https://runtimeconditions.io/extensions/rc/env-configuration/v1alpha1/runtimeconditions.extension.yaml`
 
 ---
 
@@ -80,8 +80,8 @@ workload:
   version: v1.2.3
 
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
-  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
+  - https://runtimeconditions.io/extensions/rc/common-integrations:v1alpha1
+  - https://runtimeconditions.io/extensions/rc/env-configuration:v1alpha1
 
 conditions:
   - name: primary-db
@@ -301,8 +301,8 @@ Extension reference strings are case-sensitive and MUST NOT be trimmed, case-fol
 
 Examples:
 
-- `https://runtimeconditions.io/extensions/common-integrations:v1alpha1`
-- `https://runtimeconditions.io/extensions/env-configuration`
+- `https://runtimeconditions.io/extensions/rc/common-integrations:v1alpha1`
+- `https://runtimeconditions.io/extensions/rc/env-configuration`
 - `file:///opt/runtimeconditions/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml`
 - `oci://ghcr.io/example/runtimeconditions/extensions/common-integrations:sha256-abc123`
 - `example.common-integrations` (resolved through a configured catalog or mapping)
@@ -311,8 +311,8 @@ Examples:
 
 ```yaml
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
-  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
+  - https://runtimeconditions.io/extensions/rc/common-integrations:v1alpha1
+  - https://runtimeconditions.io/extensions/rc/env-configuration:v1alpha1
 ```
 
 Each `extensions` item MUST be a non-empty string. The array MUST NOT contain duplicate strings. An item MAY be a bare identifier or an identifier with a version suffix.
@@ -369,7 +369,7 @@ apiVersion: runtimeconditions.io/v1alpha1
 kind: RuntimeConditionsExtensionDefinition
 
 metadata:
-  id: https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  id: https://runtimeconditions.io/extensions/rc/common-integrations/v1alpha1/runtimeconditions.extension.yaml
   version: v1alpha1
 
 spec:
@@ -829,7 +829,7 @@ workload:
   version: v1.2.3
 
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
+  - https://runtimeconditions.io/extensions/rc/common-integrations:v1alpha1
 
 conditions:
   - name: primary-db
@@ -863,8 +863,8 @@ workload:
   version: v1.2.3
 
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
-  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
+  - https://runtimeconditions.io/extensions/rc/common-integrations:v1alpha1
+  - https://runtimeconditions.io/extensions/rc/env-configuration:v1alpha1
 
 conditions:
   - name: primary-db
