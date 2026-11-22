@@ -71,6 +71,7 @@ spec:
         - cache
       appliesToInterfaceTypes:
         - key_value
+      description: How the platform passes connection details to the workload.
 ```
 
 This permits a Condition shape like:
@@ -108,6 +109,7 @@ spec:
     - name: bucketClass
       targetKind: aws.object_store
       targetType: aws.s3
+      description: The storage class the workload needs for its bucket.
 ```
 
 This permits a Condition shape like:
@@ -138,7 +140,12 @@ spec:
       values:
         - standard
         - archive
+      valueDescriptions:
+        standard: Frequently accessed objects.
+        archive: Rarely accessed objects that can tolerate slow retrieval.
 ```
+
+`valueDescriptions` is optional. Each key must be one of the entry's `values`. First-party tooling can copy these descriptions onto the generated constants, so a developer sees what each value means where they pick it.
 
 `fieldValues` is for vocabulary that generators, validators, and adapters should treat as portable. It should not be used for user-specific configuration values, secret values, target environment identifiers, or values that only a specific adapter understands.
 
@@ -218,7 +225,7 @@ spec:
 
 Schemas apply additively. A Condition must satisfy every schema whose scope matches its `kind` and `interface.type`.
 
-Describe each property with the JSON Schema `description` annotation. Descriptions do not change validation; first-party tooling copies them into the generated language bindings (Godoc, Javadoc, Python docstrings, JSDoc) and can show them in an extension catalog. Write them for the developer who declares the Condition: what the value means, an example, and when to leave it out.
+Use the JSON Schema `description` annotation to explain the validation rules a schema applies: a minimum number of items, an allowed pattern, or which properties must appear together. The meaning of a kind, interface type, field, or value belongs in the vocabulary `description` and `valueDescriptions` above. Descriptions do not change validation; first-party tooling can copy them into the generated language bindings (Godoc, Javadoc, Python docstrings, JSDoc) and show them in an extension catalog.
 
 ```yaml
       schema:
@@ -226,11 +233,10 @@ Describe each property with the JSON Schema `description` annotation. Descriptio
         properties:
           interface:
             type: object
-            description: How the workload reaches the cache.
             properties:
               engine:
                 enum: [redis, memcached]
-                description: The cache engine the workload needs. Leave it out if any key/value engine works.
+                description: Optional. When present, must be one of the key_value engine values.
 ```
 
 A `description` beside `$ref` documents that use of the referenced definition and takes precedence over the definition's own description.
@@ -276,7 +282,9 @@ Before treating an extension as first-party tooling-ready:
 - Make every `fieldValues.field` path resolve to a condition or interface field in the declared target scope.
 - Use `fieldValues` for portable string values, not deployment-specific data.
 - Use JSON Schema to validate nested object shape.
-- Give every kind, interface type, and schema property a `description`.
+- Give the extension a `metadata.description`.
+- Give every kind, interface type, condition field, and interface field a `description`, and describe each field value with `valueDescriptions`.
+- Explain each validation rule with a JSON Schema `description`.
 - Scope schemas to resolved kinds and interface types.
 - Avoid overlapping `conditionFields` definitions.
 - Keep declaration bindings or package manifests separate from extension vocabulary.

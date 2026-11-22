@@ -383,12 +383,13 @@ spec:
 | `metadata` | object | YES | Extension identity |
 | `spec` | object | YES | Extension vocabulary, dependencies, and validation schemas |
 
-Extension metadata has these identity fields:
+Extension metadata has these fields:
 
 | Field | Type | Required | Description |
 | ----- | ---- | -------- | ----------- |
 | `id` | string | YES | Non-empty extension identifier, as defined in Section 5.1 |
 | `version` | string | NO | Optional non-empty extension version |
+| `description` | string | NO | Human-readable summary of what the extension describes and when to use it |
 
 `metadata.id` MUST be a non-empty string. `metadata.version`, when present, MUST be a non-empty string.
 
@@ -432,6 +433,7 @@ Each `conditionFields` entry MUST include:
 | `name` | string | YES | Condition-level field defined by the extension |
 | `appliesToKinds` | array | YES | Kinds to which the field applies |
 | `appliesToInterfaceTypes` | array | NO | Interface types to which the field applies |
+| `description` | string | NO | Human-readable explanation of the field |
 
 Each `conditionFields` entry MUST declare a non-empty `appliesToKinds` list.
 
@@ -442,6 +444,7 @@ Each `interfaceFields` entry MUST include:
 | `name` | string | YES | Interface-level field defined by the extension |
 | `targetKind` | string | YES | Condition kind for which the field is valid |
 | `targetType` | string | YES | Interface type for which the field is valid |
+| `description` | string | NO | Human-readable explanation of the field |
 
 Each `fieldValues` entry MUST include:
 
@@ -451,8 +454,11 @@ Each `fieldValues` entry MUST include:
 | `targetKind` | string | YES | Condition kind scope |
 | `targetType` | string | NO | Interface type scope |
 | `values` | array | YES | Non-empty list of defined values |
+| `valueDescriptions` | object | NO | Human-readable explanation of individual values, keyed by value |
 
 Each `fieldValues.values` entry MUST be unique within that `fieldValues` entry.
+
+Each `valueDescriptions` key MUST equal a string entry of the same `fieldValues` entry's `values`, and each value MUST be a non-empty string. A value without a key is undocumented, not invalid.
 
 Each `schemas` entry MUST include:
 
@@ -470,7 +476,16 @@ Each extension schema validates a Condition object after the profile has been co
 
 A schema applies to a Condition when all declared scope fields match the Condition. Omitted scope fields do not restrict applicability.
 
-`kinds[].description`, `interfaceTypes[].description`, `schemas[].description`, and the JSON Schema `title` and `description` annotations inside `schemas[].schema` are documentation. When present, each `description` MUST be a non-empty string. Documentation MUST NOT change validation results. Tools MAY use it to generate language binding documentation and extension catalog pages. Extension authors SHOULD describe every kind, every interface type, and every property defined in `schemas[].schema`, in terms a workload developer can act on.
+The following are documentation:
+
+- `metadata.description`
+- `kinds[].description`, `interfaceTypes[].description`, `conditionFields[].description`, and `interfaceFields[].description`
+- `fieldValues[].valueDescriptions`
+- `schemas[].description`, and the JSON Schema `title` and `description` annotations inside `schemas[].schema`
+
+When present, each `description` MUST be a non-empty string. Documentation MUST NOT change validation results. Tools MAY use it to generate language binding documentation and extension catalog pages.
+
+Vocabulary descriptions explain meaning: what a kind, interface type, field, or value represents and when a workload developer would use it. JSON Schema descriptions explain the validation rules that a schema applies, such as a minimum number of items, an allowed pattern, or which properties must appear together. Extension authors SHOULD document every vocabulary item and every validation rule, in terms a workload developer can act on.
 
 ## 6.5 Extension Definition Example
 
@@ -481,19 +496,23 @@ kind: RuntimeConditionsExtensionDefinition
 metadata:
   id: https://aws.example.com/runtimeconditions/object-store/v1alpha1/runtimeconditions.extension.yaml
   version: "v1alpha1"
+  description: Object storage requirements for workloads that use AWS.
 
 spec:
   kinds:
     - name: aws.object_store
+      description: The workload stores and reads objects in an object store.
 
   interfaceTypes:
     - name: aws.s3
       targetKind: aws.object_store
+      description: An Amazon S3 bucket.
 
   interfaceFields:
     - name: bucketClass
       targetKind: aws.object_store
       targetType: aws.s3
+      description: The storage class the workload needs for its bucket.
 
   fieldValues:
     - field: interface.bucketClass
@@ -502,6 +521,9 @@ spec:
       values:
         - standard
         - archive
+      valueDescriptions:
+        standard: Frequently accessed objects.
+        archive: Rarely accessed objects that can tolerate slow retrieval.
 
   schemas:
     - id: aws-s3-interface
@@ -525,6 +547,7 @@ spec:
               type:
                 const: aws.s3
               bucketClass:
+                description: Must be one of the bucketClass values; omit it to accept any class.
                 enum:
                   - standard
                   - archive
